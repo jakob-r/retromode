@@ -46,7 +46,7 @@ export function SettingsPopover({ board }: { board: PublicBoard }) {
         animate={{ rotate: open ? 60 : 0 }}
         aria-label="Board settings"
         aria-expanded={open}
-        className="rounded-full bg-white/80 p-2.5 text-ink shadow-sm transition hover:bg-white"
+        className="header-control rounded-full bg-white/80 p-2.5 text-ink shadow-sm transition hover:bg-white"
       >
         <Settings size={18} />
       </motion.button>
@@ -57,7 +57,7 @@ export function SettingsPopover({ board }: { board: PublicBoard }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16 }}
-            className="absolute top-full right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] origin-top-right rounded-3xl border border-line bg-paper p-5 shadow-2xl shadow-ink/15"
+            className="absolute top-full right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] origin-top-right rounded-3xl border border-line bg-paper p-5 text-ink shadow-2xl shadow-ink/15"
           >
             <h3 className="mb-4 font-display text-lg font-bold">Board settings</h3>
 

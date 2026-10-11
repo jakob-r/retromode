@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ActionItemDialog } from '../components/ActionItemDialog'
 import { BoardColumns } from '../components/BoardColumns'
+import { FocusSky } from '../components/FocusSky'
 import { Header } from '../components/Header'
 import { LinkDialog } from '../components/LinkDialog'
 import { LockBanner } from '../components/LockBanner'
@@ -10,7 +11,7 @@ import { MergeDialog } from '../components/MergeDialog'
 import { NicknameDialog } from '../components/NicknameDialog'
 import { ShareDialog } from '../components/ShareDialog'
 import { SparkleShape } from '../components/Sparkles'
-import { FocusDim, TimeUpBurst } from '../components/TimeUp'
+import { TimeUpBurst } from '../components/TimeUp'
 import { hasAnsweredNickname, setOwnerKey } from '../lib/identity'
 import { celebrate } from '../lib/motion'
 import { connectBoard, useBoard } from '../store/board'
@@ -74,7 +75,7 @@ export function BoardPage() {
     <main
       className={`mx-auto max-w-[96rem] px-4 pb-10 sm:px-6 ${board.locked ? 'board-locked' : ''} ${timeUp ? 'time-up' : ''}`}
     >
-      <FocusDim active={timerRunning} />
+      <FocusSky active={timerRunning} hideItems={timerRunning && !!board.timer?.hideItems} />
       {timeUp && <TimeUpBurst key={timeUps} seed={timeUps} />}
       <Header board={board} online={online} status={status} onShare={() => setShareOpen(true)} />
       <LockBanner locked={board.locked} isOwner={board.isOwner} />

@@ -130,6 +130,65 @@
     0 10px 30px -8px color-mix(in srgb, var(--color-violet) 55%, transparent);
 }
 
+.board-header,
+.board-header .header-control {
+  transition:
+    background-color 1.2s ease-in-out,
+    color 1.2s ease-in-out;
+}
+.board-header[data-focus='true'] {
+  background-color: rgb(23 29 61 / 88%);
+  color: #fff3cd;
+}
+.board-header[data-focus='true'],
+.board-header[data-focus='true'] .header-control {
+  transition-duration: 2.5s;
+}
+.board-header[data-focus='true'] .header-control {
+  background-color: #443d75;
+  color: #fff3cd;
+}
+.board-header[data-focus='true'] button.header-control:hover {
+  background-color: #5b518f;
+  transition-duration: 0.15s;
+}
+
+.focus-sky {
+  background:
+    radial-gradient(ellipse at 50% 110%, #74639b 0%, transparent 65%),
+    radial-gradient(ellipse at 85% 20%, #443d75 0%, transparent 55%),
+    linear-gradient(170deg, #171d3d, #302b55 65%, #51436f);
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+.focus-sky[data-active='true'] {
+  opacity: 1;
+  transition-duration: 2.5s;
+}
+.focus-star,
+.focus-stardust {
+  animation: focus-twinkle var(--star-duration) ease-in-out var(--star-delay) infinite;
+  animation-play-state: paused;
+}
+.focus-star {
+  filter: drop-shadow(0 0 8px #ffe8ad50);
+}
+.focus-sky[data-active='true'] .focus-star,
+.focus-sky[data-active='true'] .focus-stardust {
+  animation-play-state: running;
+}
+@keyframes focus-twinkle {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(0.9) rotate(-5deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06) rotate(5deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

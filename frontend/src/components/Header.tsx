@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Share2, Users, WifiOff } from 'lucide-react'
 import type { PublicBoard } from '@retromode/shared'
 import type { Status } from '../store/board'
+import { useBoard } from '../store/board'
 import { useMe } from '../store/me'
 import { Logo } from './Logo'
 import { SettingsPopover } from './SettingsPopover'
@@ -20,9 +21,13 @@ export function Header({
 }) {
   const nickname = useMe((s) => s.nickname)
   const openNicknameDialog = useMe((s) => s.openNicknameDialog)
+  const timerRunning = useBoard((s) => s.timerEndsAt !== null)
 
   return (
-    <header className="sticky top-0 z-30 -mx-4 mb-4 bg-cream/75 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
+    <header
+      data-focus={timerRunning}
+      className="board-header sticky top-0 z-30 -mx-4 mb-4 bg-cream/75 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6"
+    >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Logo />
         <h1 className="order-last w-full min-w-0 truncate font-display text-2xl font-bold tracking-tight sm:order-none sm:w-auto sm:flex-1 sm:text-[1.7rem]">
@@ -42,7 +47,7 @@ export function Header({
             )}
           </AnimatePresence>
           <span
-            className="flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-2 text-sm font-semibold shadow-sm sm:px-3"
+            className="header-control flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-2 text-sm font-semibold shadow-sm sm:px-3"
             title={`${online} ${online === 1 ? 'person' : 'people'} here right now`}
           >
             <span className="relative flex h-2 w-2">
@@ -56,7 +61,7 @@ export function Header({
           <button
             type="button"
             onClick={openNicknameDialog}
-            className="max-w-24 truncate rounded-full bg-white/80 px-2.5 py-2 text-sm font-medium shadow-sm transition hover:bg-white sm:max-w-40 sm:px-3"
+            className="header-control max-w-24 truncate rounded-full bg-white/80 px-2.5 py-2 text-sm font-medium shadow-sm transition hover:bg-white sm:max-w-40 sm:px-3"
             title="Change your nickname"
           >
             {nickname ? `👤 ${nickname}` : '🥷 Set nickname'}
@@ -65,7 +70,7 @@ export function Header({
             type="button"
             whileTap={{ scale: 0.94 }}
             onClick={onShare}
-            className="flex items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-ink/90 sm:px-4"
+            className="header-control flex items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-ink/90 sm:px-4"
           >
             <Share2 size={15} /> <span className="max-sm:hidden">Share</span>
           </motion.button>

@@ -5,19 +5,6 @@ import { prefersReducedMotion } from '../lib/motion'
 const EMOJIS = ['⏰', '⏱️', '⌛', '⏳', '🕰️', '🔔', '⏲️', '🕛']
 const COUNT = 36
 
-/** Darkens the backdrop while the timer runs, so the board feels like focus time. */
-export function FocusDim({ active }: { active: boolean }) {
-  return (
-    <motion.div
-      className="pointer-events-none fixed inset-0 -z-[5] bg-ink"
-      initial={false}
-      animate={{ opacity: active ? 0.55 : 0 }}
-      transition={{ duration: active ? 2.5 : 1.2, ease: 'easeInOut' }}
-      aria-hidden
-    />
-  )
-}
-
 /** A burst of clocks and hourglasses from the middle of the screen when the timer runs out. */
 export function TimeUpBurst({ seed }: { seed: number }) {
   const particles = useMemo(() => {
