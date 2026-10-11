@@ -1,5 +1,6 @@
 import type {
   BoardJoinInput,
+  BoardNukeInput,
   BoardSettingsInput,
   BoardTimerInput,
   GroupMergeInput,
@@ -22,6 +23,7 @@ export interface ClientToServerEvents {
   'board:sync': Handler<Record<string, never>, BoardSnapshot>
   'board:settings': Handler<BoardSettingsInput>
   'board:timer': Handler<BoardTimerInput>
+  'board:nuke': Handler<BoardNukeInput>
   'item:create': Handler<ItemCreateInput>
   'item:update': Handler<ItemUpdateInput>
   'item:delete': Handler<ItemDeleteInput>
@@ -38,6 +40,11 @@ export interface ClientToServerEvents {
 export interface ServerToClientEvents {
   'board:patch': (patch: BoardPatch) => void
   presence: (data: { online: number }) => void
+  /** The owner deleted the board; it no longer exists */
+  'board:nuked': () => void
 }
 
-export type MutationEvent = Exclude<keyof ClientToServerEvents, 'board:join' | 'board:sync'>
+export type MutationEvent = Exclude<
+  keyof ClientToServerEvents,
+  'board:join' | 'board:sync' | 'board:nuke'
+>

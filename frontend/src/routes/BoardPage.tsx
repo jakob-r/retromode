@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ActionItemDialog } from '../components/ActionItemDialog'
 import { BoardColumns } from '../components/BoardColumns'
 import { FocusSky } from '../components/FocusSky'
@@ -71,6 +71,7 @@ export function BoardPage() {
   }, [board?.title]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (status === 'not-found') return <NotFound what="board" />
+  if (status === 'nuked') return <Nuked />
   if (!board) return <Loading />
 
   return (
@@ -102,6 +103,29 @@ export function BoardPage() {
       <MergeDialog />
       <LinkDialog />
       <ActionItemDialog />
+    </main>
+  )
+}
+
+function Nuked() {
+  return (
+    <main className="flex min-h-dvh flex-col items-center justify-center px-4 text-center">
+      <motion.div
+        className="text-7xl"
+        initial={{ scale: 0.2, rotate: -20, opacity: 0 }}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 12 }}
+      >
+        💥
+      </motion.div>
+      <h1 className="mt-4 font-display text-3xl font-bold">This board was nuked</h1>
+      <p className="mt-2 text-ink-soft">Everything on it is gone for good.</p>
+      <Link
+        to="/"
+        className="mt-6 rounded-2xl bg-ink px-5 py-3 font-display font-bold text-white transition hover:bg-ink/90"
+      >
+        Create a new board
+      </Link>
     </main>
   )
 }

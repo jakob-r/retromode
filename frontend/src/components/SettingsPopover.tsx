@@ -1,14 +1,16 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { Lock, LockOpen, Minus, Plus, Settings } from 'lucide-react'
+import { Lock, LockOpen, Minus, Plus, Radiation, Settings } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { LIMITS, type PublicBoard } from '@retromode/shared'
 import { actions } from '../store/board'
 import { CopyField } from './CopyField'
+import { NukeDialog } from './NukeDialog'
 import { adminUrl } from './ShareDialog'
 
-/** Owner-only board settings: title, votes per column, lock. */
+/** Owner-only board settings: title, votes per column, lock, nuke. */
 export function SettingsPopover({ board }: { board: PublicBoard }) {
   const [open, setOpen] = useState(false)
+  const [nukeOpen, setNukeOpen] = useState(false)
   const [title, setTitle] = useState(board.title)
   const ref = useRef<HTMLDivElement>(null)
   const admin = adminUrl(board.slug)
@@ -156,9 +158,27 @@ export function SettingsPopover({ board }: { board: PublicBoard }) {
                 <CopyField value={admin} label="Admin link" />
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                setNukeOpen(true)
+              }}
+              className="mt-4 flex w-full items-center gap-2.5 rounded-2xl border border-coral/40 p-3 text-left text-coral-deep transition hover:bg-coral-tint"
+            >
+              <Radiation size={18} />
+              <span>
+                <span className="block text-sm font-semibold">Nuke board</span>
+                <span className="block text-xs text-coral-deep/80">
+                  Delete it and all its data for good
+                </span>
+              </span>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
+      <NukeDialog open={nukeOpen} onClose={() => setNukeOpen(false)} />
     </div>
   )
 }

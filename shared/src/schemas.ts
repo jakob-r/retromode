@@ -84,6 +84,9 @@ export const boardSettingsSchema = z.object({
   locked: z.boolean().optional(),
 })
 
+/** Owner only: deletes the board and everything on it for good. Typing NUKE is the confirmation. */
+export const boardNukeSchema = z.object({ confirm: z.literal('NUKE') })
+
 /** Starts (or restarts) the shared countdown; seconds null stops it. Anyone may do this. */
 export const boardTimerSchema = z.object({
   seconds: z.number().int().min(LIMITS.timerMinSeconds).max(LIMITS.timerMaxSeconds).nullable(),
@@ -106,3 +109,4 @@ export type GroupMoveInput = z.infer<typeof groupMoveSchema>
 export type VoteInput = z.infer<typeof voteSchema>
 export type BoardSettingsInput = z.infer<typeof boardSettingsSchema>
 export type BoardTimerInput = z.infer<typeof boardTimerSchema>
+export type BoardNukeInput = z.infer<typeof boardNukeSchema>

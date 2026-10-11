@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { sql } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { sortPositioned } from '@retromode/shared'
+import * as schema from '../db/schema'
 import * as boards from './boards'
 import { DomainError } from './errors'
 import { snapshotFor } from './public'
@@ -357,6 +358,40 @@ describe('owner settings & lock', () => {
 
     await boards.updateSettings(db, ownerActor, { locked: false })
     await boards.addVote(db, a, { itemId: id })
+  })
+})
+
+describe('nuke', () => {
+  it('lets only the owner delete the board with every item, group and vote, even when locked', async () => {
+    const { board, actor, ownerActor, addItem } = await setupBoard()
+    const a = actor()
+    const first = await addItem(a)
+    const second = await addItem(a)
+    await boards.addVote(db, a, { itemId: first })
+    await boards.mergeEntries(db, a, {
+      source: { type: 'item', id: second },
+      target: { type: 'item', id: first },
+      newGroupId: randomUUID(),
+    })
+    await boards.updateSettings(db, ownerActor, { locked: true })
+
+    await rejects(boards.nukeBoard(db, a), 'FORBIDDEN')
+    await boards.nukeBoard(db, ownerActor)
+
+    expect(await db.select().from(schema.boards).where(eq(schema.boards.id, board.id))).toEqual([])
+    expect(
+      await db.select().from(schema.groups).where(eq(schema.groups.boardId, board.id)),
+    ).toEqual([])
+    expect(await db.select().from(schema.items).where(eq(schema.items.boardId, board.id))).toEqual(
+      [],
+    )
+    expect(
+      await db
+        .select()
+        .from(schema.votes)
+        .where(inArray(schema.votes.itemId, [first, second])),
+    ).toEqual([])
+    await rejects(boards.nukeBoard(db, ownerActor), 'NOT_FOUND')
   })
 })
 

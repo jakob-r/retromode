@@ -53,3 +53,4 @@ export const setAnonymousPref = (anonymous: boolean) => write('anonymous', anony
 
 export const getOwnerKey = (slug: string) => read(`ownerKey:${slug}`) ?? undefined
 export const setOwnerKey = (slug: string, key: string) => write(`ownerKey:${slug}`, key)
+export const forgetOwnerKey = (slug: string) => write(`ownerKey:${slug}`, null)

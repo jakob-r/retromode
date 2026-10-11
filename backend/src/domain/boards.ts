@@ -613,6 +613,19 @@ export function setTimer(db: Db, actor: Actor, input: BoardTimerInput): Promise<
 // ---------------------------------------------------------------------------
 // Maintenance
 
+/**
+ * Owner only: deletes the board for good. Groups, items and votes go with it
+ * (ON DELETE CASCADE), and nothing about the board is kept or logged.
+ */
+export async function nukeBoard(db: Db, actor: Actor): Promise<void> {
+  if (!actor.isOwner) throw forbidden('Only the board owner can nuke the board')
+  const deleted = await db
+    .delete(boards)
+    .where(eq(boards.id, actor.boardId))
+    .returning({ id: boards.id })
+  if (deleted.length === 0) throw notFound('Board')
+}
+
 export async function deleteInactiveBoards(db: Db, retentionDays: number): Promise<number> {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
   const deleted = await db

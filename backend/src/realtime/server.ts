@@ -4,6 +4,7 @@ import { Server, type Socket } from 'socket.io'
 import type { z } from 'zod'
 import {
   boardJoinSchema,
+  boardNukeSchema,
   boardSettingsSchema,
   boardTimerSchema,
   groupMergeSchema,
@@ -149,6 +150,29 @@ export function createRealtimeServer(
     socket.on('board:sync', async (_raw, ack) => {
       try {
         ack({ ok: true, data: await snapshot(socket) })
+      } catch (error) {
+        ack(fail(error, log))
+      }
+    })
+
+    socket.on('board:nuke', async (raw, ack) => {
+      if (typeof ack !== 'function') return
+      try {
+        const boardId = socket.data.boardId
+        if (!boardId) throw new DomainError('NOT_JOINED', 'Join a board first')
+        if (!socket.data.bucket.take()) throw new DomainError('RATE_LIMITED', 'Slow down a little')
+        if (!boardNukeSchema.safeParse(raw).success) throw invalidInput()
+        await boards.nukeBoard(db, { boardId, ...socket.data })
+        ack({ ok: true, data: null })
+        // Tell everyone else, then forget who was here
+        socket.to(room(boardId)).emit('board:nuked')
+        for (const id of [...(io.sockets.adapter.rooms.get(room(boardId)) ?? [])]) {
+          const s = io.sockets.sockets.get(id)
+          if (!s) continue
+          s.data.boardId = undefined
+          s.data.isOwner = false
+          void s.leave(room(boardId))
+        }
       } catch (error) {
         ack(fail(error, log))
       }

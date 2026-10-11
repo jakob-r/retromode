@@ -114,6 +114,33 @@ describe('realtime', () => {
     })
   })
 
+  it('lets the owner nuke the board and kicks everyone out', async () => {
+    const ownerId = randomUUID()
+    const { slug } = await createBoard(ownerId)
+    const alice = client(ownerId)
+    const bob = client()
+    await emit(alice, 'board:join', { slug })
+    await emit(bob, 'board:join', { slug })
+
+    expect(await emit(bob, 'board:nuke', { confirm: 'NUKE' })).toMatchObject({
+      ok: false,
+      error: 'FORBIDDEN',
+    })
+    expect(await emit(alice, 'board:nuke', { confirm: 'nuke' })).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    })
+
+    const bobKicked = new Promise<void>((resolve) => bob.once('board:nuked', resolve))
+    expect((await emit(alice, 'board:nuke', { confirm: 'NUKE' })).ok).toBe(true)
+    await bobKicked
+    expect(await emit(bob, 'board:sync', {})).toMatchObject({ ok: false, error: 'NOT_JOINED' })
+    expect(await emit(bob, 'board:join', { slug })).toMatchObject({
+      ok: false,
+      error: 'NOT_FOUND',
+    })
+  })
+
   it('validates input and requires joining first', async () => {
     const { slug } = await createBoard(randomUUID())
     const socket = client()

@@ -11,11 +11,11 @@ import type {
 } from '@retromode/shared'
 import { pickEmoji } from '../lib/emoji'
 import * as model from '../lib/model'
-import { getOwnerKey, uuid } from '../lib/identity'
+import { forgetOwnerKey, getOwnerKey, uuid } from '../lib/identity'
 import { createSocket, type RetroSocket } from '../realtime/socket'
 import { toast } from './toasts'
 
-export type Status = 'connecting' | 'ready' | 'reconnecting' | 'not-found'
+export type Status = 'connecting' | 'ready' | 'reconnecting' | 'not-found' | 'nuked'
 
 export interface VoteSpray {
   key: string
@@ -60,6 +60,14 @@ const get = useBoard.getState
 const data = (): model.BoardData => ({ items: get().items, groups: get().groups })
 
 let socket: RetroSocket | null = null
+
+/** The board is gone: drop everything we held about it, here and in this browser. */
+function wipe() {
+  const slug = get().slug
+  if (slug) forgetOwnerKey(slug)
+  syncTimer(null)
+  set({ ...initial(), slug, status: 'nuked' })
+}
 
 const FRESH_MS = 1500
 
@@ -138,6 +146,10 @@ export function connectBoard(slug: string): () => void {
     if (get().status === 'ready') set({ status: 'reconnecting' })
   })
   s.on('presence', ({ online }) => set({ online }))
+  s.on('board:nuked', () => {
+    wipe()
+    s.disconnect()
+  })
   s.on('board:patch', (patch) => {
     const before = get().items
     const arrivals = { ...get().remoteArrivals }
@@ -318,6 +330,26 @@ export const actions = {
       })
     }
     mutate('board:settings', input)
+  },
+
+  /** Owner only: deletes the board and everything on it for everyone. Resolves once it's gone. */
+  nuke(): Promise<boolean> {
+    const s = socket
+    if (!s?.connected) {
+      toast('You are offline – reconnecting…', 'error')
+      return Promise.resolve(false)
+    }
+    return new Promise((resolve) => {
+      s.emit('board:nuke', { confirm: 'NUKE' }, (res) => {
+        if (!res.ok) {
+          toast(MESSAGES[res.error] ?? 'Something went wrong', 'error')
+          return resolve(false)
+        }
+        wipe()
+        s.disconnect()
+        resolve(true)
+      })
+    })
   },
 
   /** Starts the shared timer for everyone (null stops it). */
