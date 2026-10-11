@@ -29,6 +29,15 @@ export async function buildApp(config: Config, db: Db): Promise<App> {
   await app.register(rateLimit, { global: false })
   await registerApiRoutes(app, db)
 
+  // nginx-proxy forwards ACME HTTP-01 challenges here until the first cert exists.
+  if (config.ACME_WEBROOT && existsSync(config.ACME_WEBROOT)) {
+    await app.register(fastifyStatic, {
+      root: path.join(config.ACME_WEBROOT, '.well-known', 'acme-challenge'),
+      prefix: '/.well-known/acme-challenge/',
+      decorateReply: false,
+    })
+  }
+
   const indexHtml = path.join(config.STATIC_DIR, 'index.html')
   if (existsSync(indexHtml)) {
     await app.register(fastifyStatic, { root: config.STATIC_DIR, wildcard: false })

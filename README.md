@@ -50,3 +50,21 @@ The root `Dockerfile` builds one image. Fastify serves the API, the WebSocket an
 ```bash
 make docker-up
 ```
+
+### VPS deployment with Docker Compose
+
+retromo.de runs as its own stack next to an existing [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) with acme-companion (the same setup as eventmat):
+
+- `postgres`: PostgreSQL with a named volume, published only on `127.0.0.1`
+- `app`: the production image; joins the proxy's Docker network and advertises `VIRTUAL_HOST`, so nginx-proxy routes the hostname (including WebSockets) and Let's Encrypt issues the cert. Until the first cert exists, the app serves ACME challenges from the companion's webroot volume.
+
+Leave the proxy's Compose file alone and don't edit nginx by hand. DNS for `VIRTUAL_HOST` must already point at the VPS.
+
+1. `cp .env.example .env`, then set a strong `POSTGRES_PASSWORD` (and the matching `DATABASE_URL`), and uncomment and fill in `VIRTUAL_HOST`, `LETSENCRYPT_HOST`, `LETSENCRYPT_EMAIL`, `PROXY_NETWORK` (`docker network ls | grep proxy`) and `PROXY_HTML_VOLUME` (`docker volume ls | grep html`).
+2. Build and start:
+
+   ```bash
+   docker compose --profile app up -d --build
+   ```
+
+3. Check: `docker compose --profile app ps` and `docker compose --profile app logs -f app`. Migrations run on container start, so redeploying is `git pull` plus step 2.

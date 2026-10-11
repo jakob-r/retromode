@@ -16,6 +16,8 @@ const configSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   /** Built frontend to serve (only if it contains an index.html) */
   STATIC_DIR: z.string().default(path.join(repoRoot ?? process.cwd(), 'frontend', 'dist')),
+  /** acme-companion webroot, served under /.well-known/acme-challenge/ (production behind nginx-proxy) */
+  ACME_WEBROOT: z.string().optional(),
 })
 
 export type Config = z.infer<typeof configSchema>

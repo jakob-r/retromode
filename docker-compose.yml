@@ -16,6 +16,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   app:
     build:
@@ -26,13 +31,37 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://${POSTGRES_USER:-retromode}:${POSTGRES_PASSWORD:-retromode}@postgres:5432/${POSTGRES_DB:-retromode}
+      ACME_WEBROOT: /acme
+      VIRTUAL_HOST: ${VIRTUAL_HOST:-}
+      VIRTUAL_PORT: ${BACKEND_PORT:-3000}
+      LETSENCRYPT_HOST: ${LETSENCRYPT_HOST:-${VIRTUAL_HOST:-}}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
+    volumes:
+      - acme-webroot:/acme:ro
+    # Optional localhost-only debug port. Public HTTP/HTTPS is the existing nginx-proxy.
     ports:
-      - '${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}'
+      - '127.0.0.1:${APP_PORT:-8081}:${BACKEND_PORT:-3000}'
+    networks:
+      - default
+      - proxy-tier
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
     profiles: ['app']
 
 volumes:
   postgres-data:
+  acme-webroot:
+    name: ${PROXY_HTML_VOLUME:-docker_compose_html}
+    external: true
+
+networks:
+  proxy-tier:
+    name: ${PROXY_NETWORK:-docker_compose_proxy-tier}
+    external: true
