@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import type { EntryRef } from '@retromode/shared'
 
-export type DropMode = 'before' | 'after' | 'merge' | 'end'
+/** `link` ties an action item to something to improve instead of merging. */
+export type DropMode = 'before' | 'after' | 'merge' | 'link' | 'end'
 
 /** Where the dragged entry would land: `key` is `item:<id>`, `group:<id>` or `column:<key>`. */
 export interface DropHint {

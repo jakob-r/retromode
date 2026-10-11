@@ -208,6 +208,107 @@ describe('grouping', () => {
   })
 })
 
+describe('links', () => {
+  const linkOf = async (state: () => Promise<boards.BoardState>, id: string) => {
+    const item = (await state()).items.find((i) => i.id === id)!
+    return { item: item.linkedItemId, group: item.linkedGroupId }
+  }
+
+  it('ties action items to things to improve, and only those', async () => {
+    const { actor, addItem, state } = await setupBoard()
+    const a = actor()
+    const improve = await addItem(a, 'improve')
+    const well = await addItem(a, 'well')
+    const action = await addItem(a, 'actions')
+
+    await rejects(
+      boards.linkItem(db, a, { itemId: action, target: { type: 'item', id: well } }),
+      'INVALID',
+    )
+    await rejects(
+      boards.linkItem(db, a, { itemId: well, target: { type: 'item', id: improve } }),
+      'INVALID',
+    )
+    const changes = await boards.linkItem(db, a, {
+      itemId: action,
+      target: { type: 'item', id: improve },
+    })
+    expect([...changes.itemIds]).toEqual([action])
+    expect(await linkOf(state, action)).toEqual({ item: improve, group: null })
+
+    await boards.linkItem(db, a, { itemId: action, target: null })
+    expect(await linkOf(state, action)).toEqual({ item: null, group: null })
+
+    const created = randomUUID()
+    await boards.createItem(db, a, {
+      id: created,
+      column: 'actions',
+      text: 'do it',
+      anonymous: true,
+      link: { type: 'item', id: improve },
+    })
+    expect(await linkOf(state, created)).toEqual({ item: improve, group: null })
+    await rejects(
+      boards.createItem(db, a, {
+        id: randomUUID(),
+        column: 'well',
+        text: 'nope',
+        anonymous: true,
+        link: { type: 'item', id: improve },
+      }),
+      'INVALID',
+    )
+  })
+
+  it('moves strings to the leftover item when a group goes away, and cuts them on delete', async () => {
+    const { actor, addItem, state } = await setupBoard()
+    const a = actor()
+    const x = await addItem(a, 'improve')
+    const y = await addItem(a, 'improve')
+    const action = await addItem(a, 'actions')
+    const groupId = randomUUID()
+    await boards.mergeEntries(db, a, {
+      source: { type: 'item', id: x },
+      target: { type: 'item', id: y },
+      newGroupId: groupId,
+    })
+    await boards.linkItem(db, a, { itemId: action, target: { type: 'group', id: groupId } })
+    expect(await linkOf(state, action)).toEqual({ item: null, group: groupId })
+
+    // Taking x out dissolves the group; y is left over and takes the string
+    const changes = await boards.moveItem(db, a, {
+      itemId: x,
+      column: 'improve',
+      groupId: null,
+      afterId: null,
+    })
+    expect(changes.itemIds.has(action)).toBe(true)
+    expect(await linkOf(state, action)).toEqual({ item: y, group: null })
+
+    const deleted = await boards.deleteItem(db, a, { itemId: y })
+    expect(deleted.itemIds.has(action)).toBe(true)
+    expect(await linkOf(state, action)).toEqual({ item: null, group: null })
+  })
+
+  it('hands the string to the first item when a group is ungrouped', async () => {
+    const { actor, addItem, state } = await setupBoard()
+    const a = actor()
+    const x = await addItem(a, 'improve')
+    const y = await addItem(a, 'improve')
+    const action = await addItem(a, 'actions')
+    const groupId = randomUUID()
+    await boards.mergeEntries(db, a, {
+      source: { type: 'item', id: x },
+      target: { type: 'item', id: y },
+      newGroupId: groupId,
+    })
+    await boards.linkItem(db, a, { itemId: action, target: { type: 'group', id: groupId } })
+    await boards.ungroup(db, a, { groupId })
+    // y was the merge target, so it is the group's first item
+    expect(await linkOf(state, action)).toEqual({ item: y, group: null })
+  })
+})
+
 describe('owner settings & lock', () => {
   it('only lets the owner change settings', async () => {
     const { actor, ownerActor, state } = await setupBoard()

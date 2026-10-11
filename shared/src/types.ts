@@ -1,4 +1,5 @@
 import type { ColumnKey, ErrorCode } from './constants'
+import type { EntryRef } from './schemas'
 
 export interface PublicBoard {
   slug: string
@@ -31,6 +32,8 @@ export interface PublicItem {
   votes: number
   /** Personalized: the receiving client voted for this item */
   votedByMe: boolean
+  /** Action items only: the "To improve" item or group this one is tied to */
+  link: EntryRef | null
   createdAt: string
   updatedAt: string
 }

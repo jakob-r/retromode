@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   index,
+  type AnyPgColumn,
   integer,
   pgEnum,
   pgTable,
@@ -66,10 +67,20 @@ export const items = pgTable(
     authorClientId: uuid('author_client_id').notNull(),
     /** null when posted anonymously */
     authorNickname: text('author_nickname'),
+    /** An action item can hang on a string from one item or group it addresses */
+    linkedItemId: uuid('linked_item_id').references((): AnyPgColumn => items.id, {
+      onDelete: 'set null',
+    }),
+    linkedGroupId: uuid('linked_group_id').references(() => groups.id, { onDelete: 'set null' }),
     ...timestamps,
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('items_board_idx').on(t.boardId), index('items_group_idx').on(t.groupId)],
+  (t) => [
+    index('items_board_idx').on(t.boardId),
+    index('items_group_idx').on(t.groupId),
+    index('items_linked_item_idx').on(t.linkedItemId),
+    index('items_linked_group_idx').on(t.linkedGroupId),
+  ],
 )
 
 export const votes = pgTable(

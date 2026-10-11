@@ -21,6 +21,7 @@ import { useDrag, type DropHint } from '../store/drag'
 import { Column } from './Column'
 import { GroupCard } from './GroupCard'
 import { ItemCard } from './ItemCard'
+import { Strings } from './Strings'
 
 type DropData =
   | { kind: 'item'; id: string; groupId: string | null; column: ColumnKey }
@@ -43,7 +44,7 @@ function pointerY(event: DragMoveEvent): number | null {
   return start === undefined ? null : start + event.delta.y
 }
 
-/** Decides what dropping here means: insert before/after, merge, or append to the column. */
+/** Decides what dropping here means: insert before/after, merge, tie, or append to the column. */
 function computeHint(active: EntryRef, event: DragMoveEvent): DropHint | null {
   const over = event.over
   const data = over?.data.current as DropData | undefined
@@ -52,16 +53,21 @@ function computeHint(active: EntryRef, event: DragMoveEvent): DropHint | null {
   if (data.kind === 'column') return { key: `column:${data.column}`, mode: 'end' }
 
   const rect = over.rect
+  const { items, groups } = useBoard.getState()
+  // An action item and something to improve get tied together instead of merged
+  const merge = model.linkBetween({ items, groups }, active, { type: data.kind, id: data.id })
+    ? 'link'
+    : 'merge'
   if (data.kind === 'item') {
     // A dragged group treats items inside another group as that group
-    if (active.type === 'group' && data.groupId)
+    if (merge === 'merge' && active.type === 'group' && data.groupId)
       return { key: `group:${data.groupId}`, mode: 'merge' }
     const rel = (y - rect.top) / rect.height
-    const mode = rel < 0.28 ? 'before' : rel > 0.72 ? 'after' : 'merge'
+    const mode = rel < 0.28 ? 'before' : rel > 0.72 ? 'after' : merge
     return { key: `item:${data.id}`, mode }
   }
   const edge = Math.min(18, rect.height * 0.2)
-  const mode = y < rect.top + edge ? 'before' : y > rect.bottom - edge ? 'after' : 'merge'
+  const mode = y < rect.top + edge ? 'before' : y > rect.bottom - edge ? 'after' : merge
   return { key: `group:${data.id}`, mode }
 }
 
@@ -75,6 +81,14 @@ function executeDrop(active: EntryRef, hint: DropHint) {
   const data: model.BoardData = { items, groups }
   const target = parseKey(hint.key)
 
+  if (hint.mode === 'link' && target.type !== 'column') {
+    const link = model.linkBetween(data, active, { type: target.type, id: target.id })
+    const current = link && data.items[link.itemId]?.link
+    if (link && (current?.type !== link.target.type || current.id !== link.target.id)) {
+      actions.link(link.itemId, link.target)
+    }
+    return
+  }
   if (hint.mode === 'merge' && target.type !== 'column') {
     actions.merge(active, { type: target.type, id: target.id })
     return
@@ -237,7 +251,7 @@ export function BoardColumns({ board }: { board: PublicBoard }) {
         })}
       </div>
 
-      <div className="grid items-start gap-4 md:grid-cols-3 lg:gap-5">
+      <div className="relative grid items-start gap-4 md:grid-cols-3 lg:gap-5">
         {columns.map((c) => (
           <Column
             key={c.column}
@@ -246,6 +260,7 @@ export function BoardColumns({ board }: { board: PublicBoard }) {
             className={c.column === mobileColumn ? '' : 'max-md:hidden'}
           />
         ))}
+        <Strings />
       </div>
 
       <DragOverlay dropAnimation={null} className="opacity-90">

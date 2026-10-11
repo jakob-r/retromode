@@ -60,6 +60,16 @@ A small, real-time retrospective board. You open the site, create a board, share
 - A group that drops to a single item dissolves on its own.
 - Dragging a group to another column moves all its items.
 
+### 2.4a Tying action items (strings)
+- An **action item** can be tied to the "To improve" item or group it addresses. A loose, gently swaying string connects the two cards.
+- Ways to tie (anyone, unless the board is locked):
+  - drag an action item onto an improve item/group, or the other way round (the drop target says "🧶 Tie together"), or
+  - use **"Add action item"** in an improve item's or group's ⋯ menu to write a new action item that's already tied, or
+  - use **"Tie to…"** in an action item's ⋯ menu (keyboard/touch friendly). **"Cut the string"** unties it.
+- One string per action item; many action items can hang on the same improve entry.
+- If a tied group dissolves or is ungrouped, the string moves to its remaining/first item. Deleting the target cuts the string.
+- On mobile (one column at a time) the action item shows what it's tied to instead of drawing a string.
+
 ### 2.5 Voting (+1)
 - Every item has a 👍 button with its vote count.
 - **One vote per person per item.** Clicking again takes your vote back.

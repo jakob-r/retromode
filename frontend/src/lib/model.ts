@@ -107,7 +107,18 @@ function dissolveIfSmall(data: BoardData, groupId: string): void {
   if (last) {
     data.items[last.id] = { ...last, groupId: null, column: group.column, position: group.position }
   }
+  retargetLinks(data, { type: 'group', id: groupId }, last?.id ?? null)
   delete data.groups[groupId]
+}
+
+/** Before an entry disappears, re-ties strings attached to it to `itemId`, or cuts them. */
+function retargetLinks(data: BoardData, from: EntryRef, itemId: string | null): void {
+  const link: EntryRef | null = itemId ? { type: 'item', id: itemId } : null
+  for (const item of Object.values(data.items)) {
+    if (item.link?.type === from.type && item.link.id === from.id) {
+      data.items[item.id] = { ...item, link }
+    }
+  }
 }
 
 export function createItem(data: BoardData, item: Omit<PublicItem, 'position'>): BoardData {
@@ -121,6 +132,7 @@ export function deleteItem(data: BoardData, itemId: string): BoardData {
   if (!item) return data
   const next = clone(data)
   delete next.items[itemId]
+  retargetLinks(next, { type: 'item', id: itemId }, null)
   if (item.groupId) dissolveIfSmall(next, item.groupId)
   return next
 }
@@ -213,6 +225,7 @@ export function ungroup(data: BoardData, groupId: string): BoardData {
   members.forEach((item, index) => {
     next.items[item.id] = { ...item, groupId: null, position: keys[index]! }
   })
+  retargetLinks(next, { type: 'group', id: groupId }, members[0]?.id ?? null)
   delete next.groups[groupId]
   return next
 }
@@ -230,6 +243,65 @@ export function moveGroup(
     next.items[item.id] = { ...item, column: input.column }
   }
   return next
+}
+
+export function link(data: BoardData, itemId: string, target: EntryRef | null): BoardData {
+  return patchItem(data, itemId, { link: target })
+}
+
+// ---------------------------------------------------------------------------
+// Links: action items hang on a string from the "To improve" entry they address
+
+export const LINK_SOURCE: ColumnKey = 'actions'
+export const LINK_TARGET: ColumnKey = 'improve'
+
+export interface Link {
+  key: string
+  itemId: string
+  target: EntryRef
+}
+
+const columnOf = (data: BoardData, ref: EntryRef): ColumnKey | undefined =>
+  ref.type === 'item' ? data.items[ref.id]?.column : data.groups[ref.id]?.column
+
+/** Strings to draw: links whose target still exists and isn't the item itself or its group. */
+export function links(data: BoardData): Link[] {
+  const result: Link[] = []
+  for (const item of Object.values(data.items)) {
+    const target = item.link
+    if (!target || !columnOf(data, target)) continue
+    if (target.id === item.id || target.id === item.groupId) continue
+    result.push({ key: `${item.id}>${target.type}:${target.id}`, itemId: item.id, target })
+  }
+  return result
+}
+
+/**
+ * Whether dropping `a` onto `b` (or `b` onto `a`) ties an action item to
+ * something to improve; returns the link that would make.
+ */
+export function linkBetween(
+  data: BoardData,
+  a: EntryRef,
+  b: EntryRef,
+): { itemId: string; target: EntryRef } | null {
+  for (const [source, target] of [
+    [a, b],
+    [b, a],
+  ] as const) {
+    if (source.type !== 'item' || columnOf(data, source) !== LINK_SOURCE) continue
+    if (columnOf(data, target) !== LINK_TARGET) continue
+    return { itemId: source.id, target }
+  }
+  return null
+}
+
+/** Short text describing an entry: its text, or a group's title / first item. */
+export function entryLabel(data: BoardData, ref: EntryRef): string | null {
+  if (ref.type === 'item') return data.items[ref.id]?.text ?? null
+  const group = data.groups[ref.id]
+  if (!group) return null
+  return group.title || groupMembers(data, group.id)[0]?.text || 'Group'
 }
 
 export function toggleVote(data: BoardData, itemId: string): BoardData {

@@ -1,8 +1,10 @@
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
+import { ActionItemDialog } from '../components/ActionItemDialog'
 import { BoardColumns } from '../components/BoardColumns'
 import { Header } from '../components/Header'
+import { LinkDialog } from '../components/LinkDialog'
 import { LockBanner } from '../components/LockBanner'
 import { MergeDialog } from '../components/MergeDialog'
 import { NicknameDialog } from '../components/NicknameDialog'
@@ -76,6 +78,8 @@ export function BoardPage() {
       />
       <NicknameDialog />
       <MergeDialog />
+      <LinkDialog />
+      <ActionItemDialog />
     </main>
   )
 }

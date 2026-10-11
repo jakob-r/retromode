@@ -7,6 +7,7 @@ import type {
   GroupUpdateInput,
   ItemCreateInput,
   ItemDeleteInput,
+  ItemLinkInput,
   ItemMoveInput,
   ItemUpdateInput,
   VoteToggleInput,
@@ -23,6 +24,7 @@ export interface ClientToServerEvents {
   'item:update': Handler<ItemUpdateInput>
   'item:delete': Handler<ItemDeleteInput>
   'item:move': Handler<ItemMoveInput>
+  'item:link': Handler<ItemLinkInput>
   'group:merge': Handler<GroupMergeInput>
   'group:ungroup': Handler<GroupUngroupInput>
   'group:update': Handler<GroupUpdateInput>

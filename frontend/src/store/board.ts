@@ -151,13 +151,26 @@ function mutate(
 // Actions
 
 export const actions = {
-  createItem(column: ColumnKey, text: string, anonymous: boolean, nickname: string | null) {
+  createItem(
+    column: ColumnKey,
+    text: string,
+    anonymous: boolean,
+    nickname: string | null,
+    link: EntryRef | null = null,
+  ) {
     const id = uuid()
     const now = new Date().toISOString()
     const named = !anonymous && !!nickname
     mutate(
       'item:create',
-      { id, column, text, anonymous: !named, nickname: nickname ?? undefined },
+      {
+        id,
+        column,
+        text,
+        anonymous: !named,
+        nickname: nickname ?? undefined,
+        link: link ?? undefined,
+      },
       (d) =>
         model.createItem(d, {
           id,
@@ -168,6 +181,7 @@ export const actions = {
           mine: true,
           votes: 0,
           votedByMe: false,
+          link,
           createdAt: now,
           updatedAt: now,
         }),
@@ -191,6 +205,11 @@ export const actions = {
   moveItem(itemId: string, column: ColumnKey, groupId: string | null, afterId: string | null) {
     const input = { itemId, column, groupId, afterId }
     mutate('item:move', input, (d) => model.moveItem(d, input))
+  },
+
+  /** Ties an action item to something to improve (null cuts the string). */
+  link(itemId: string, target: EntryRef | null) {
+    mutate('item:link', { itemId, target }, (d) => model.link(d, itemId, target))
   },
 
   merge(source: EntryRef, target: EntryRef) {

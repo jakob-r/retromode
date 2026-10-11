@@ -18,12 +18,19 @@ export const boardJoinSchema = z.object({
   ownerKey: z.string().max(100).optional(),
 })
 
+export const entryRefSchema = z.object({
+  type: z.enum(['item', 'group']),
+  id: idSchema,
+})
+
 export const itemCreateSchema = z.object({
   id: idSchema,
   column: columnSchema,
   text: itemText,
   anonymous: z.boolean(),
   nickname: nickname.optional(),
+  /** Only for action items: the "To improve" entry this one addresses. */
+  link: entryRefSchema.optional(),
 })
 
 export const itemUpdateSchema = z.object({
@@ -41,11 +48,6 @@ export const itemMoveSchema = z.object({
   column: columnSchema,
   groupId: idSchema.nullable(),
   afterId: idSchema.nullable(),
-})
-
-export const entryRefSchema = z.object({
-  type: z.enum(['item', 'group']),
-  id: idSchema,
 })
 
 export const groupMergeSchema = z.object({
@@ -68,6 +70,12 @@ export const groupMoveSchema = z.object({
   afterId: idSchema.nullable(),
 })
 
+/** Ties an action item to a "To improve" item or group (target null = cut the string). */
+export const itemLinkSchema = z.object({
+  itemId: idSchema,
+  target: entryRefSchema.nullable(),
+})
+
 export const voteToggleSchema = z.object({ itemId: idSchema })
 
 export const boardSettingsSchema = z.object({
@@ -82,6 +90,7 @@ export type ItemCreateInput = z.infer<typeof itemCreateSchema>
 export type ItemUpdateInput = z.infer<typeof itemUpdateSchema>
 export type ItemDeleteInput = z.infer<typeof itemDeleteSchema>
 export type ItemMoveInput = z.infer<typeof itemMoveSchema>
+export type ItemLinkInput = z.infer<typeof itemLinkSchema>
 export type EntryRef = z.infer<typeof entryRefSchema>
 export type GroupMergeInput = z.infer<typeof groupMergeSchema>
 export type GroupUngroupInput = z.infer<typeof groupUngroupSchema>

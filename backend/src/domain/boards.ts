@@ -15,6 +15,7 @@ import {
   type GroupUpdateInput,
   type ItemCreateInput,
   type ItemDeleteInput,
+  type ItemLinkInput,
   type ItemMoveInput,
   type ItemUpdateInput,
   type Positioned,
@@ -240,8 +241,42 @@ async function dissolveIfSmall(tx: Tx, groupId: string, changes: Changes): Promi
       .where(eq(items.id, last.id))
     changes.item(last.id)
   }
+  await retargetLinks(tx, { type: 'group', id: groupId }, last?.id ?? null, changes)
   await tx.delete(groups).where(eq(groups.id, groupId))
   changes.deleteGroup(groupId)
+}
+
+// ---------------------------------------------------------------------------
+// Links: an action item hangs on a string from the "To improve" entry it addresses
+
+const LINK_SOURCE: ColumnKey = 'actions'
+const LINK_TARGET: ColumnKey = 'improve'
+
+/** Validates a link target and returns the item columns that store it. */
+async function linkColumns(tx: Tx, boardId: string, target: EntryRef | null) {
+  if (!target) return { linkedItemId: null, linkedGroupId: null }
+  const { column } =
+    target.type === 'group'
+      ? await getGroup(tx, boardId, target.id)
+      : await getItem(tx, boardId, target.id)
+  if (column !== LINK_TARGET) throw invalid('Action items can only be tied to things to improve')
+  return target.type === 'group'
+    ? { linkedItemId: null, linkedGroupId: target.id }
+    : { linkedItemId: target.id, linkedGroupId: null }
+}
+
+/**
+ * Before an entry disappears, re-ties the strings attached to it to `itemId`
+ * (e.g. the item left over from a dissolved group), or cuts them.
+ */
+async function retargetLinks(tx: Tx, from: EntryRef, itemId: string | null, changes: Changes) {
+  const column = from.type === 'group' ? items.linkedGroupId : items.linkedItemId
+  const rows = await tx
+    .update(items)
+    .set({ linkedItemId: itemId, linkedGroupId: null })
+    .where(eq(column, from.id))
+    .returning({ id: items.id })
+  for (const row of rows) changes.item(row.id)
 }
 
 // ---------------------------------------------------------------------------
@@ -249,6 +284,8 @@ async function dissolveIfSmall(tx: Tx, groupId: string, changes: Changes): Promi
 
 export function createItem(db: Db, actor: Actor, input: ItemCreateInput): Promise<Changes> {
   return mutate(db, actor, async (tx, board, changes) => {
+    if (input.link && input.column !== LINK_SOURCE) throw invalid('Only action items can be tied')
+    const link = await linkColumns(tx, board.id, input.link ?? null)
     // Newest items go to the top of the column, right below the input.
     const position = positionAfter(await columnEntries(tx, board.id, input.column), null)
     const inserted = await tx
@@ -261,6 +298,7 @@ export function createItem(db: Db, actor: Actor, input: ItemCreateInput): Promis
         text: input.text,
         authorClientId: actor.clientId,
         authorNickname: input.anonymous ? null : (input.nickname ?? null),
+        ...link,
       })
       .onConflictDoNothing()
       .returning({ id: items.id })
@@ -294,6 +332,7 @@ export function deleteItem(db: Db, actor: Actor, input: ItemDeleteInput): Promis
     if (item.authorClientId !== actor.clientId && !actor.isOwner) {
       throw forbidden('You can only delete your own items')
     }
+    await retargetLinks(tx, { type: 'item', id: item.id }, null, changes)
     await tx.delete(items).where(eq(items.id, item.id))
     changes.deleteItem(item.id)
     if (item.groupId) await dissolveIfSmall(tx, item.groupId, changes)
@@ -324,6 +363,18 @@ export function moveItem(db: Db, actor: Actor, input: ItemMoveInput): Promise<Ch
     if (item.groupId && item.groupId !== input.groupId) {
       await dissolveIfSmall(tx, item.groupId, changes)
     }
+  })
+}
+
+export function linkItem(db: Db, actor: Actor, input: ItemLinkInput): Promise<Changes> {
+  return mutate(db, actor, async (tx, board, changes) => {
+    const item = await getItem(tx, board.id, input.itemId)
+    if (input.target && item.column !== LINK_SOURCE) throw invalid('Only action items can be tied')
+    await tx
+      .update(items)
+      .set(await linkColumns(tx, board.id, input.target))
+      .where(eq(items.id, item.id))
+    changes.item(item.id)
   })
 }
 
@@ -416,6 +467,7 @@ export function ungroup(db: Db, actor: Actor, input: GroupUngroupInput): Promise
         .where(eq(items.id, item.id))
       changes.item(item.id)
     }
+    await retargetLinks(tx, { type: 'group', id: group.id }, members[0]?.id ?? null, changes)
     await tx.delete(groups).where(eq(groups.id, group.id))
     changes.deleteGroup(group.id)
   })

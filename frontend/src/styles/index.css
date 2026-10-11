@@ -120,6 +120,14 @@
     0 10px 30px -8px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
+/* Drop target that would tie an action item to something to improve */
+.tie-ring {
+  box-shadow:
+    0 0 0 2px var(--color-violet),
+    0 0 0 6px color-mix(in srgb, var(--color-coral) 30%, transparent),
+    0 10px 30px -8px color-mix(in srgb, var(--color-violet) 55%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

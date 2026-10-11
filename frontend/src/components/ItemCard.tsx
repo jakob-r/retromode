@@ -1,9 +1,10 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { motion } from 'motion/react'
-import { ArrowRight, Layers, LogOut, Pencil, Trash2 } from 'lucide-react'
+import { ArrowRight, Layers, LogOut, Pencil, Rocket, Scissors, Spline, Trash2 } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
 import { COLUMNS, LIMITS, type PublicItem } from '@retromode/shared'
 import { COLUMN_META } from '../lib/columns'
+import * as model from '../lib/model'
 import { softSpring } from '../lib/motion'
 import { actions, useBoard } from '../store/board'
 import { useDrag, useDropMode } from '../store/drag'
@@ -13,6 +14,8 @@ import { AnonymityToggle } from './AnonymityToggle'
 import { DropIndicator } from './DropIndicator'
 import { EmojiBurst } from './EmojiBurst'
 import { Menu, type MenuEntry } from './Menu'
+import { stringAnchor } from './Strings'
+import { TieBadge } from './TieBadge'
 import { VoteButton } from './VoteButton'
 
 interface Props {
@@ -30,6 +33,9 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
   const remote = useBoard((s) => !!s.remoteArrivals[item.id])
   const fresh = useBoard((s) => !!s.freshItems[item.id])
   const dropMode = useDropMode(`item:${item.id}`)
+  const tiedTo = useBoard((s) =>
+    item.link ? model.entryLabel({ items: s.items, groups: s.groups }, item.link) : null,
+  )
 
   const drag = useDraggable({
     id: `item:${item.id}`,
@@ -52,6 +58,27 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
       icon: <Layers size={15} />,
       onSelect: () => useUi.getState().setMergeSource({ type: 'item', id: item.id }),
     })
+    if (item.column === model.LINK_TARGET) {
+      menu.push({
+        label: 'Add action item',
+        icon: <Rocket size={15} />,
+        onSelect: () => useUi.getState().setActionFor({ type: 'item', id: item.id }),
+      })
+    }
+    if (item.column === model.LINK_SOURCE) {
+      menu.push({
+        label: item.link ? 'Tie to something else…' : 'Tie to…',
+        icon: <Spline size={15} />,
+        onSelect: () => useUi.getState().setLinkSource(item.id),
+      })
+      if (item.link) {
+        menu.push({
+          label: 'Cut the string',
+          icon: <Scissors size={15} />,
+          onSelect: () => actions.link(item.id, null),
+        })
+      }
+    }
     if (item.groupId) {
       menu.push({
         label: 'Take out of group',
@@ -82,6 +109,7 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
   return (
     <div className="entry relative">
       <DropIndicator mode={dropMode} />
+      {dropMode === 'link' && <TieBadge />}
       {fresh && !overlay && <EmojiBurst itemId={item.id} column={item.column} />}
       <motion.div
         ref={(node) => {
@@ -90,10 +118,11 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
         }}
         {...drag.attributes}
         {...drag.listeners}
+        {...stringAnchor({ type: 'item', id: item.id }, overlay)}
         animate={
           dropMode === 'merge'
             ? { scale: 1.03, rotate: [0, -1.2, 1.2, 0] }
-            : { scale: 1, rotate: overlay ? 2.5 : 0 }
+            : { scale: dropMode === 'link' ? 1.03 : 1, rotate: overlay ? 2.5 : 0 }
         }
         transition={
           dropMode === 'merge'
@@ -102,7 +131,7 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
         }
         className={`group/card relative rounded-2xl bg-white pl-4 pr-2.5 pt-2.5 pb-2 shadow-[0_2px_0_rgba(43,33,64,0.06),0_8px_24px_-12px_color-mix(in_srgb,var(--accent)_60%,transparent)] transition-[opacity,box-shadow] ${
           drag.isDragging ? 'opacity-35' : ''
-        } ${dropMode === 'merge' ? 'accent-ring' : ''} ${overlay ? 'cursor-grabbing shadow-2xl' : locked ? '' : 'cursor-grab'} ${
+        } ${dropMode === 'merge' ? 'accent-ring' : ''} ${dropMode === 'link' ? 'tie-ring' : ''} ${overlay ? 'cursor-grabbing shadow-2xl' : locked ? '' : 'cursor-grab'} ${
           remote ? 'remote-glow' : ''
         }`}
       >
@@ -116,6 +145,12 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
           </p>
           {!overlay && <Menu entries={menu} label="Item actions" />}
         </div>
+        {/* On mobile only one column shows at a time, so strings can't be drawn */}
+        {tiedTo && (
+          <p className="mt-1.5 truncate text-xs font-medium text-coral-deep md:hidden">
+            🧶 {tiedTo}
+          </p>
+        )}
         <div className="mt-2 flex items-center justify-between gap-2">
           <span className="truncate text-xs font-medium text-ink-soft">
             {item.nickname ? `👤 ${item.nickname}` : '🥷 Anonymous'}

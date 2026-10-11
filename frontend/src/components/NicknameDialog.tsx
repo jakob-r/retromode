@@ -37,7 +37,10 @@ export function NicknameDialog() {
           Your nickname is shown on items you post with your name.
         </p>
         <p className="mb-3 rounded-2xl bg-black/[0.04] px-4 py-3 text-sm text-ink">
-          🥷 <span className="font-semibold">Setting a name doesn't stop you posting anonymously.</span>{' '}
+          🥷{' '}
+          <span className="font-semibold">
+            Setting a name doesn't stop you posting anonymously.
+          </span>{' '}
           Every item has a <span className="font-semibold">Name / Anonymous</span> switch, so you
           pick each time you post.
         </p>

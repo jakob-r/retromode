@@ -1,9 +1,10 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowRight, Layers, Pencil, ThumbsUp, Ungroup } from 'lucide-react'
+import { ArrowRight, Layers, Pencil, Rocket, ThumbsUp, Ungroup } from 'lucide-react'
 import { useState } from 'react'
 import { COLUMNS, LIMITS, type PublicGroup, type PublicItem } from '@retromode/shared'
 import { COLUMN_META } from '../lib/columns'
+import * as model from '../lib/model'
 import { softSpring, spring } from '../lib/motion'
 import { actions } from '../store/board'
 import { useDrag, useDropMode } from '../store/drag'
@@ -11,6 +12,8 @@ import { useUi } from '../store/ui'
 import { DropIndicator } from './DropIndicator'
 import { ItemCard } from './ItemCard'
 import { Menu, type MenuEntry } from './Menu'
+import { stringAnchor } from './Strings'
+import { TieBadge } from './TieBadge'
 
 interface Props {
   group: PublicGroup
@@ -57,6 +60,13 @@ export function GroupCard({
       },
       { label: 'Ungroup', icon: <Ungroup size={15} />, onSelect: () => actions.ungroup(group.id) },
     )
+    if (group.column === model.LINK_TARGET) {
+      menu.push({
+        label: 'Add action item',
+        icon: <Rocket size={15} />,
+        onSelect: () => useUi.getState().setActionFor({ type: 'group', id: group.id }),
+      })
+    }
     for (const column of COLUMNS) {
       if (column === group.column) continue
       menu.push({
@@ -70,16 +80,21 @@ export function GroupCard({
   return (
     <div className="entry relative">
       <DropIndicator mode={dropMode} />
+      {dropMode === 'link' && <TieBadge />}
       <motion.div
         ref={(node) => {
           drag.setNodeRef(node)
           drop.setNodeRef(node)
         }}
-        animate={{ scale: dropMode === 'merge' ? 1.02 : 1, rotate: overlay ? 1.5 : 0 }}
+        {...stringAnchor({ type: 'group', id: group.id }, overlay)}
+        animate={{
+          scale: dropMode === 'merge' || dropMode === 'link' ? 1.02 : 1,
+          rotate: overlay ? 1.5 : 0,
+        }}
         transition={softSpring}
         className={`relative rounded-3xl bg-[color-mix(in_srgb,var(--accent)_16%,white)] p-2 pt-0 shadow-[0_2px_0_rgba(43,33,64,0.05),4px_4px_0_-1px_color-mix(in_srgb,var(--accent)_25%,white),8px_8px_0_-2px_color-mix(in_srgb,var(--accent)_12%,white)] transition-opacity ${
           drag.isDragging ? 'opacity-35' : ''
-        } ${dropMode === 'merge' ? 'accent-ring' : ''} ${overlay ? 'shadow-2xl' : ''}`}
+        } ${dropMode === 'merge' ? 'accent-ring' : ''} ${dropMode === 'link' ? 'tie-ring' : ''} ${overlay ? 'shadow-2xl' : ''}`}
       >
         <div
           {...drag.attributes}

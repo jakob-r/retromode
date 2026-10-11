@@ -17,6 +17,7 @@ function item(fields: Partial<PublicItem> = {}): PublicItem {
     mine: false,
     votes: 0,
     votedByMe: false,
+    link: null,
     createdAt: '',
     updatedAt: '',
     ...fields,
@@ -77,5 +78,32 @@ describe('board model', () => {
     const data = model.fromLists([], [a, b])
     expect(model.predecessorId(data, { type: 'item', id: a.id })).toBeNull()
     expect(model.predecessorId(data, { type: 'item', id: b.id })).toBe(a.id)
+  })
+
+  it('detects links in either drag direction and re-ties strings when groups go away', () => {
+    const x = item({ column: 'improve' })
+    const y = item({ column: 'improve' })
+    const action = item({ column: 'actions' })
+    const well = item({ column: 'well' })
+    let data = model.fromLists([], [x, y, action, well])
+    const ref = (id: string) => ({ type: 'item' as const, id })
+
+    expect(model.linkBetween(data, ref(action.id), ref(x.id))).toEqual({
+      itemId: action.id,
+      target: ref(x.id),
+    })
+    expect(model.linkBetween(data, ref(x.id), ref(action.id))?.itemId).toBe(action.id)
+    expect(model.linkBetween(data, ref(action.id), ref(well.id))).toBeNull()
+    expect(model.linkBetween(data, ref(x.id), ref(y.id))).toBeNull()
+
+    data = model.merge(data, { source: ref(x.id), target: ref(y.id), newGroupId: 'g1' })
+    data = model.link(data, action.id, { type: 'group', id: 'g1' })
+    expect(model.links(data).map((l) => l.key)).toEqual([`${action.id}>group:g1`])
+
+    data = model.moveItem(data, { itemId: x.id, column: 'improve', groupId: null, afterId: null })
+    expect(data.items[action.id]!.link).toEqual(ref(y.id))
+    data = model.deleteItem(data, y.id)
+    expect(data.items[action.id]!.link).toBeNull()
+    expect(model.links(data)).toEqual([])
   })
 })

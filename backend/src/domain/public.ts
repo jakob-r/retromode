@@ -48,6 +48,11 @@ export function toPublicItem(
     mine: item.authorClientId === viewer.clientId,
     votes: voters?.size ?? 0,
     votedByMe: voters?.has(viewer.clientId) ?? false,
+    link: item.linkedGroupId
+      ? { type: 'group', id: item.linkedGroupId }
+      : item.linkedItemId
+        ? { type: 'item', id: item.linkedItemId }
+        : null,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
   }
