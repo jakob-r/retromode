@@ -9,12 +9,19 @@ import type {
   MutationEvent,
   PublicBoard,
 } from '@retromode/shared'
+import { pickEmoji } from '../lib/emoji'
 import * as model from '../lib/model'
 import { getOwnerKey, uuid } from '../lib/identity'
 import { createSocket, type RetroSocket } from '../realtime/socket'
 import { toast } from './toasts'
 
 export type Status = 'connecting' | 'ready' | 'reconnecting' | 'not-found'
+
+export interface VoteSpray {
+  key: string
+  itemId: string
+  emoji: string
+}
 
 interface BoardStore extends model.BoardData {
   slug: string | null
@@ -25,6 +32,8 @@ interface BoardStore extends model.BoardData {
   remoteArrivals: Record<string, true>
   /** Items created moments ago (by anyone), for the emoji burst */
   freshItems: Record<string, true>
+  /** Emoji sprays playing on vote buttons right now, one per new vote (by anyone) */
+  voteSprays: VoteSpray[]
   /** Local clock time when the shared timer runs out, while it runs */
   timerEndsAt: number | null
   /** Bumped each time the timer runs out while we watched it */
@@ -38,6 +47,7 @@ const initial = (): BoardStore => ({
   online: 0,
   remoteArrivals: {},
   freshItems: {},
+  voteSprays: [],
   timerEndsAt: null,
   timeUps: 0,
   ...model.emptyData(),
@@ -63,6 +73,19 @@ function markFresh(ids: string[]) {
     for (const id of ids) delete rest[id]
     set({ freshItems: rest })
   }, FRESH_MS)
+}
+
+const SPRAY_MS = 1400
+
+/** Plays the column's emoji over an item's vote button; the vote count picks it, so all clients agree. */
+function sprayVote(itemId: string) {
+  const item = get().items[itemId]
+  if (!item) return
+  const key = `${itemId}:${item.votes}`
+  const emoji = pickEmoji(item.column, key)
+  if (!emoji || get().voteSprays.some((s) => s.key === key)) return
+  set({ voteSprays: [...get().voteSprays, { key, itemId, emoji }] })
+  setTimeout(() => set({ voteSprays: get().voteSprays.filter((s) => s.key !== key) }), SPRAY_MS)
 }
 
 let timeUpTimeout: ReturnType<typeof setTimeout> | undefined
@@ -119,8 +142,12 @@ export function connectBoard(slug: string): () => void {
     const before = get().items
     const arrivals = { ...get().remoteArrivals }
     const created: string[] = []
+    const voted: string[] = []
     for (const item of patch.items ?? []) {
-      if (before[item.id]) continue
+      const old = before[item.id]
+      // Our own votes were already counted optimistically, so only other people's show up here
+      if (old && item.votes > old.votes) voted.push(item.id)
+      if (old) continue
       created.push(item.id)
       if (!item.mine) arrivals[item.id] = true
     }
@@ -130,6 +157,7 @@ export function connectBoard(slug: string): () => void {
       remoteArrivals: arrivals,
     })
     markFresh(created)
+    voted.forEach(sprayVote)
     if (patch.board) syncTimer(patch.board)
   })
 
@@ -267,6 +295,7 @@ export const actions = {
       return false
     }
     mutate('vote:add', { itemId }, (d) => model.vote(d, itemId, 1))
+    sprayVote(itemId)
     return true
   },
 

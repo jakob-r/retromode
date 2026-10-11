@@ -1,31 +1,12 @@
 import { motion } from 'motion/react'
 import { useMemo } from 'react'
 import type { ColumnKey } from '@retromode/shared'
+import { hash, pickEmoji } from '../lib/emoji'
 import { prefersReducedMotion } from '../lib/motion'
-
-const EMOJIS: Partial<Record<ColumnKey, string[]>> = {
-  well: ['🎉', '🥳', '🌟', '💖', '🙌', '🔥', '👏', '😍', '💯', '🦄', '🍾', '🌈'],
-  improve: ['😩', '💩', '😤', '🌧️', '👎', '😬', '🙈', '💔', '🐌', '🤦', '🥲', '⛈️'],
-}
-
-/** Deterministic hash, so every client picks the same emoji for an item. */
-function hash(s: string): number {
-  let h = 2166136261
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
-  return h >>> 0
-}
-
-/** A random emoji from the column's set, or null for columns without one. */
-export function randomEmoji(column: ColumnKey): string | null {
-  const set = EMOJIS[column]
-  return set ? set[Math.floor(Math.random() * set.length)]! : null
-}
 
 /** A fountain of one emoji over a freshly created item (positive or negative column). */
 export function EmojiBurst({ itemId, column }: { itemId: string; column: ColumnKey }) {
-  const set = EMOJIS[column]
-  const h = hash(itemId)
-  return <EmojiFountain emoji={set?.[h % set.length] ?? null} seed={h} />
+  return <EmojiFountain emoji={pickEmoji(column, itemId)} seed={hash(itemId)} />
 }
 
 /** Sprays `count` copies of one emoji upwards from the middle of the parent. */

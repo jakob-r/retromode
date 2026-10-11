@@ -2,8 +2,9 @@ import { AnimatePresence, motion, useAnimate } from 'motion/react'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useState } from 'react'
 import type { PublicItem } from '@retromode/shared'
-import { actions } from '../store/board'
-import { EmojiFountain, randomEmoji } from './EmojiBurst'
+import { hash } from '../lib/emoji'
+import { actions, useBoard } from '../store/board'
+import { EmojiFountain } from './EmojiBurst'
 import { SparkleBurst } from './Sparkles'
 
 export function VoteButton({
@@ -16,7 +17,7 @@ export function VoteButton({
   locked: boolean
 }) {
   const [burst, setBurst] = useState(0)
-  const [fountains, setFountains] = useState<{ id: number; emoji: string }[]>([])
+  const sprays = useBoard((s) => s.voteSprays)
   const [scope, animate] = useAnimate()
   const voted = item.myVotes > 0
   const disabled = locked || !canVote
@@ -27,12 +28,6 @@ export function VoteButton({
       return
     }
     setBurst((b) => b + 1)
-    const emoji = randomEmoji(item.column)
-    if (emoji) {
-      const id = Math.floor(Math.random() * 2 ** 32)
-      setFountains((f) => [...f, { id, emoji }])
-      setTimeout(() => setFountains((f) => f.filter((x) => x.id !== id)), 1400)
-    }
     void animate(
       scope.current,
       { scale: [1, 1.35, 0.9, 1], rotate: [0, -14, 6, 0] },
@@ -79,9 +74,11 @@ export function VoteButton({
         } ${locked ? 'cursor-default' : 'cursor-pointer'}`}
       >
         <SparkleBurst trigger={burst} />
-        {fountains.map((f) => (
-          <EmojiFountain key={f.id} emoji={f.emoji} seed={f.id} count={6} spread={0.7} />
-        ))}
+        {sprays
+          .filter((s) => s.itemId === item.id)
+          .map((s) => (
+            <EmojiFountain key={s.key} emoji={s.emoji} seed={hash(s.key)} count={6} spread={0.7} />
+          ))}
         <span ref={scope} className="inline-flex">
           <ThumbsUp size={14} strokeWidth={2.5} fill={voted ? 'currentColor' : 'none'} />
         </span>
