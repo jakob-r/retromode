@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { LegalLinks } from '../components/LegalLinks'
 
 export function NotFound({ what = 'page' }: { what?: string }) {
   return (
@@ -14,6 +15,7 @@ export function NotFound({ what = 'page' }: { what?: string }) {
       >
         Create a new board
       </Link>
+      <LegalLinks className="mt-10" />
     </main>
   )
 }

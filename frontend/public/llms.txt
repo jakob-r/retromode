@@ -25,3 +25,6 @@
 
 - App: https://retromo.de/
 - Source code and docs: https://github.com/jakob-r/retromode
+- [Terms of use](https://retromo.de/terms)
+- [Privacy policy](https://retromo.de/privacy)
+- [Legal notice](https://retromo.de/legal-notice)

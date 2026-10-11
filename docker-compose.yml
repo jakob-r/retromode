@@ -26,6 +26,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        CONTACT_EMAIL: ${CONTACT_EMAIL:-}
+        ADDRESS: ${ADDRESS:-}
     env_file:
       - .env
     environment:

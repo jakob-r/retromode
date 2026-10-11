@@ -6,6 +6,7 @@ import { LIMITS, type CreateBoardResponse } from '@retromode/shared'
 import { COLUMN_META } from '../lib/columns'
 import { getClientId, setOwnerKey } from '../lib/identity'
 import { toast } from '../store/toasts'
+import { LegalLinks } from '../components/LegalLinks'
 import { Logo } from '../components/Logo'
 
 const features = [
@@ -151,6 +152,7 @@ export function Landing() {
           Source on GitHub
         </a>
       </footer>
+      <LegalLinks className="mt-3" />
     </main>
   )
 }

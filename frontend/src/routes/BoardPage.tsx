@@ -5,6 +5,7 @@ import { ActionItemDialog } from '../components/ActionItemDialog'
 import { BoardColumns } from '../components/BoardColumns'
 import { FocusSky } from '../components/FocusSky'
 import { Header } from '../components/Header'
+import { LegalLinks } from '../components/LegalLinks'
 import { LinkDialog } from '../components/LinkDialog'
 import { LockBanner } from '../components/LockBanner'
 import { MergeDialog } from '../components/MergeDialog'
@@ -91,6 +92,7 @@ export function BoardPage() {
       />
       <LockBanner locked={board.locked} isOwner={board.isOwner} />
       <BoardColumns board={board} />
+      <LegalLinks className="mt-10" />
       <ShareDialog
         open={shareOpen}
         onClose={() => setShareOpen(false)}
@@ -126,6 +128,7 @@ function Nuked() {
       >
         Create a new board
       </Link>
+      <LegalLinks className="mt-10" />
     </main>
   )
 }

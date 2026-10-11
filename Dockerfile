@@ -10,6 +10,9 @@ COPY frontend/package.json frontend/
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+# Operator contact for the legal pages; rendered into text-free images at build time.
+ARG CONTACT_EMAIL=
+ARG ADDRESS=
 RUN pnpm build \
   && pnpm --filter backend deploy --prod --legacy /app \
   && cp -r backend/dist backend/drizzle /app/ \
