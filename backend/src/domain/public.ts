@@ -4,6 +4,7 @@ import type {
   PublicBoard,
   PublicGroup,
   PublicItem,
+  PublicTimer,
 } from '@retromode/shared'
 import type { BoardRow, GroupRow, ItemRow } from '../db/schema'
 import type { BoardState } from './boards'
@@ -24,9 +25,16 @@ export function toPublicBoard(board: BoardRow, viewer: Viewer): PublicBoard {
     title: board.title,
     voteLimit: board.voteLimit,
     locked: board.lockedAt !== null,
+    timer: toPublicTimer(board),
     isOwner: viewer.isOwner,
     createdAt: board.createdAt.toISOString(),
   }
+}
+
+function toPublicTimer(board: BoardRow, now = Date.now()): PublicTimer | null {
+  if (!board.timerEndsAt || board.timerSeconds === null) return null
+  const remainingMs = board.timerEndsAt.getTime() - now
+  return remainingMs > 0 ? { seconds: board.timerSeconds, remainingMs } : null
 }
 
 export function toPublicGroup(group: GroupRow): PublicGroup {

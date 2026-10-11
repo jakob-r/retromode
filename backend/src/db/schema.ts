@@ -31,6 +31,9 @@ export const boards = pgTable(
     /** Votes per person per column */
     voteLimit: integer('vote_limit').notNull().default(LIMITS.defaultVoteLimit),
     lockedAt: timestamp('locked_at', { withTimezone: true }),
+    /** The shared countdown: running while timerEndsAt is in the future */
+    timerEndsAt: timestamp('timer_ends_at', { withTimezone: true }),
+    timerSeconds: integer('timer_seconds'),
     ...timestamps,
     lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).notNull().defaultNow(),
   },

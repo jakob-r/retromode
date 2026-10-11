@@ -84,6 +84,11 @@ export const boardSettingsSchema = z.object({
   locked: z.boolean().optional(),
 })
 
+/** Starts (or restarts) the shared countdown; seconds null stops it. Anyone may do this. */
+export const boardTimerSchema = z.object({
+  seconds: z.number().int().min(LIMITS.timerMinSeconds).max(LIMITS.timerMaxSeconds).nullable(),
+})
+
 export type CreateBoardInput = z.infer<typeof createBoardSchema>
 export type BoardJoinInput = z.infer<typeof boardJoinSchema>
 export type ItemCreateInput = z.infer<typeof itemCreateSchema>
@@ -98,3 +103,4 @@ export type GroupUpdateInput = z.infer<typeof groupUpdateSchema>
 export type GroupMoveInput = z.infer<typeof groupMoveSchema>
 export type VoteToggleInput = z.infer<typeof voteToggleSchema>
 export type BoardSettingsInput = z.infer<typeof boardSettingsSchema>
+export type BoardTimerInput = z.infer<typeof boardTimerSchema>

@@ -10,6 +10,7 @@ import { MergeDialog } from '../components/MergeDialog'
 import { NicknameDialog } from '../components/NicknameDialog'
 import { ShareDialog } from '../components/ShareDialog'
 import { SparkleShape } from '../components/Sparkles'
+import { FocusDim, TimeUpBurst } from '../components/TimeUp'
 import { hasAnsweredNickname, setOwnerKey } from '../lib/identity'
 import { celebrate } from '../lib/motion'
 import { connectBoard, useBoard } from '../store/board'
@@ -36,6 +37,16 @@ export function BoardPage() {
   const status = useBoard((s) => s.status)
   const board = useBoard((s) => s.board)
   const online = useBoard((s) => s.online)
+  const timerRunning = useBoard((s) => s.timerEndsAt !== null)
+  const timeUps = useBoard((s) => s.timeUps)
+  const [timeUp, setTimeUp] = useState(false)
+
+  useEffect(() => {
+    if (timeUps === 0) return
+    setTimeUp(true)
+    const id = setTimeout(() => setTimeUp(false), 2200)
+    return () => clearTimeout(id)
+  }, [timeUps])
 
   useEffect(() => {
     if (status !== 'ready') return
@@ -61,8 +72,10 @@ export function BoardPage() {
 
   return (
     <main
-      className={`mx-auto max-w-[96rem] px-4 pb-10 sm:px-6 ${board.locked ? 'board-locked' : ''}`}
+      className={`mx-auto max-w-[96rem] px-4 pb-10 sm:px-6 ${board.locked ? 'board-locked' : ''} ${timeUp ? 'time-up' : ''}`}
     >
+      <FocusDim active={timerRunning} />
+      {timeUp && <TimeUpBurst key={timeUps} seed={timeUps} />}
       <Header board={board} online={online} status={status} onShare={() => setShareOpen(true)} />
       <LockBanner locked={board.locked} isOwner={board.isOwner} />
       <BoardColumns board={board} />

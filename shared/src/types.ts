@@ -7,9 +7,18 @@ export interface PublicBoard {
   /** Votes per person per column */
   voteLimit: number
   locked: boolean
+  /** The shared countdown, while it runs */
+  timer: PublicTimer | null
   /** Personalized: whether the receiving client is the board owner */
   isOwner: boolean
   createdAt: string
+}
+
+export interface PublicTimer {
+  /** What it was started with */
+  seconds: number
+  /** Left at the moment the server sent this (relative, so client clocks don't matter) */
+  remainingMs: number
 }
 
 export interface PublicGroup {

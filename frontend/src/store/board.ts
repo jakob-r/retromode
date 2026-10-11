@@ -25,6 +25,10 @@ interface BoardStore extends model.BoardData {
   remoteArrivals: Record<string, true>
   /** Items created moments ago (by anyone), for the emoji burst */
   freshItems: Record<string, true>
+  /** Local clock time when the shared timer runs out, while it runs */
+  timerEndsAt: number | null
+  /** Bumped each time the timer runs out while we watched it */
+  timeUps: number
 }
 
 const initial = (): BoardStore => ({
@@ -34,6 +38,8 @@ const initial = (): BoardStore => ({
   online: 0,
   remoteArrivals: {},
   freshItems: {},
+  timerEndsAt: null,
+  timeUps: 0,
   ...model.emptyData(),
 })
 
@@ -59,7 +65,25 @@ function markFresh(ids: string[]) {
   }, FRESH_MS)
 }
 
+let timeUpTimeout: ReturnType<typeof setTimeout> | undefined
+
+/** Follows the board's timer; when it runs out here, everyone watching gets the time-up moment. */
+function syncTimer(board: PublicBoard | null) {
+  clearTimeout(timeUpTimeout)
+  const timer = board?.timer
+  if (!timer) {
+    set({ timerEndsAt: null })
+    return
+  }
+  set({ timerEndsAt: Date.now() + timer.remainingMs })
+  timeUpTimeout = setTimeout(
+    () => set({ timerEndsAt: null, timeUps: get().timeUps + 1 }),
+    timer.remainingMs,
+  )
+}
+
 function applySnapshot(snapshot: BoardSnapshot) {
+  syncTimer(snapshot.board)
   set({
     status: 'ready',
     board: snapshot.board,
@@ -71,6 +95,7 @@ function applySnapshot(snapshot: BoardSnapshot) {
 /** Connects to a board; returns a cleanup function. Rejoins automatically after reconnects. */
 export function connectBoard(slug: string): () => void {
   socket?.disconnect()
+  syncTimer(null)
   set({ ...initial(), slug })
   const s = createSocket()
   socket = s
@@ -105,9 +130,11 @@ export function connectBoard(slug: string): () => void {
       remoteArrivals: arrivals,
     })
     markFresh(created)
+    if (patch.board) syncTimer(patch.board)
   })
 
   return () => {
+    syncTimer(null)
     s.disconnect()
     if (socket === s) socket = null
   }
@@ -256,5 +283,16 @@ export const actions = {
       })
     }
     mutate('board:settings', input)
+  },
+
+  /** Starts the shared timer for everyone (null stops it). */
+  setTimer(seconds: number | null) {
+    const board = get().board
+    if (board && socket?.connected) {
+      const timer = seconds === null ? null : { seconds, remainingMs: seconds * 1000 }
+      set({ board: { ...board, timer } })
+      syncTimer({ ...board, timer })
+    }
+    mutate('board:timer', { seconds })
   },
 }

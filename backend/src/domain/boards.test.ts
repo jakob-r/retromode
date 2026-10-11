@@ -336,6 +336,36 @@ describe('owner settings & lock', () => {
   })
 })
 
+describe('timer', () => {
+  it('lets anyone start and stop the shared timer, even on a locked board', async () => {
+    const { actor, ownerActor, state } = await setupBoard()
+    const a = actor()
+    const viewer = { clientId: a.clientId, isOwner: false }
+    await boards.updateSettings(db, ownerActor, { locked: true })
+
+    await boards.setTimer(db, a, { seconds: 300 })
+    const timer = snapshotFor(await state(), viewer, 1).board.timer
+    expect(timer?.seconds).toBe(300)
+    expect(timer?.remainingMs).toBeGreaterThan(299_000)
+    expect(timer?.remainingMs).toBeLessThanOrEqual(300_000)
+
+    await boards.setTimer(db, a, { seconds: null })
+    expect(snapshotFor(await state(), viewer, 1).board.timer).toBeNull()
+  })
+
+  it('reports a timer that ran out as stopped', async () => {
+    const { actor, board, state } = await setupBoard()
+    const a = actor()
+    await boards.setTimer(db, a, { seconds: 60 })
+    await db.execute(
+      sql`update boards set timer_ends_at = now() - interval '1 second' where id = ${board.id}`,
+    )
+    expect(
+      snapshotFor(await state(), { clientId: a.clientId, isOwner: false }, 1).board.timer,
+    ).toBeNull()
+  })
+})
+
 describe('maintenance', () => {
   it('deletes boards without recent activity', async () => {
     const { board } = await setupBoard()

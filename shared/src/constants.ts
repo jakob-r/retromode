@@ -9,6 +9,9 @@ export const LIMITS = {
   voteLimitMin: 1,
   voteLimitMax: 20,
   defaultVoteLimit: 3,
+  timerMinSeconds: 10,
+  timerMaxSeconds: 60 * 60,
+  defaultTimerSeconds: 5 * 60,
 } as const
 
 export const ERROR_CODES = [

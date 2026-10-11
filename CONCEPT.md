@@ -97,6 +97,12 @@ A small, real-time retrospective board. You open the site, create a board, share
 - Only the owner can **unlock** it again. Lock and unlock sync to everyone live, with a little padlock animation.
 - The server rejects every write on a locked board, no matter what the client sends.
 
+### 2.7a Timer (anyone)
+- A ⏱ timer in the header that **anyone** can start for everyone, defaulting to **5 minutes** (1–60). It can be stopped or restarted by anyone too.
+- It **locks nothing** – it also runs on a locked board. While it runs, the backdrop fades darker for focus time and the header shows the countdown.
+- When it runs out, every card gives a little shake and a burst of ⏰⌛🔔 bursts out of the middle of the screen (skipped under reduced motion).
+- The server stores the end time; clients get the time *remaining* when they receive it, so their own clocks don't matter.
+
 ### 2.8 Real-time sync
 - Every change (create/edit/delete/move/merge/ungroup/vote/settings) shows up for all participants immediately (target < 200 ms on a normal connection).
 - Changes show up **optimistically** in your own UI and are rolled back with a gentle shake animation if the server rejects them.
@@ -137,9 +143,10 @@ Anonymous really means anonymous for the other participants:
 | Edit item                      |        | ✅     |       |
 | Delete item                    |        | ✅     | ✅    |
 | Change vote limit / title      |        |        | ✅    |
+| Start / stop the timer         | ✅     |        |       |
 | Lock / unlock board            |        |        | ✅    |
 
-When the board is locked, every write action above is blocked for everyone except **unlock** by the owner.
+When the board is locked, every write action above is blocked for everyone except **unlock** by the owner (and the timer, which changes nothing on the board).
 
 All permissions are **checked on the server**. The client only hides controls.
 
@@ -243,6 +250,8 @@ Board
   ownerKeyHash    text                  -- hash of the owner key
   voteLimit       int   default 3       -- votes per person per column
   lockedAt        timestamp null        -- not null = board is locked
+  timerEndsAt     timestamp null        -- shared countdown, running while in the future
+  timerSeconds    int null              -- what the timer was started with
   createdAt       timestamp
   lastActivityAt  timestamp
 
@@ -314,6 +323,7 @@ Connect with `auth: { clientId }`, then join a board room. The typed event maps 
 | `group:move`       | `{ groupId, column, afterId \| null }` |
 | `vote:toggle`      | `{ itemId }` |
 | `board:settings`   | `{ voteLimit?, title?, locked? }` (owner only) |
+| `board:timer`      | `{ seconds \| null }`: start/restart the shared timer, or stop it (anyone, also when locked) |
 
 Moves send **`afterId`** (the entry to place after, `null` = first) rather than a position. The server computes the fractional-index key while it holds the board lock, so concurrent moves can't produce colliding keys.
 

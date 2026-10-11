@@ -5,6 +5,7 @@ import type { Status } from '../store/board'
 import { useMe } from '../store/me'
 import { Logo } from './Logo'
 import { SettingsPopover } from './SettingsPopover'
+import { TimerControl } from './TimerControl'
 
 export function Header({
   board,
@@ -51,6 +52,7 @@ export function Header({
             <Users size={15} className="max-sm:hidden" />
             <span className="tabular-nums">{online}</span>
           </span>
+          <TimerControl />
           <button
             type="button"
             onClick={openNicknameDialog}

@@ -6,6 +6,7 @@ import {
   positionsBetween,
   sortPositioned,
   type BoardSettingsInput,
+  type BoardTimerInput,
   type ColumnKey,
   type CreateBoardResponse,
   type EntryRef,
@@ -558,6 +559,25 @@ export function updateSettings(db: Db, actor: Actor, input: BoardSettingsInput):
           title: input.title ?? board.title,
           voteLimit: input.voteLimit ?? board.voteLimit,
           lockedAt,
+        })
+        .where(eq(boards.id, board.id))
+      changes.board = true
+    },
+    { allowWhenLocked: true },
+  )
+}
+
+/** Anyone can start or stop the shared timer, even on a locked board – it locks nothing. */
+export function setTimer(db: Db, actor: Actor, input: BoardTimerInput): Promise<Changes> {
+  return mutate(
+    db,
+    actor,
+    async (tx, board, changes) => {
+      await tx
+        .update(boards)
+        .set({
+          timerEndsAt: input.seconds === null ? null : new Date(Date.now() + input.seconds * 1000),
+          timerSeconds: input.seconds,
         })
         .where(eq(boards.id, board.id))
       changes.board = true

@@ -5,6 +5,7 @@ import type { z } from 'zod'
 import {
   boardJoinSchema,
   boardSettingsSchema,
+  boardTimerSchema,
   groupMergeSchema,
   groupMoveSchema,
   groupUngroupSchema,
@@ -49,6 +50,7 @@ type Mutation<S extends z.ZodType> = (
 
 const mutations: { [E in MutationEvent]: [z.ZodType, Mutation<z.ZodType>] } = {
   'board:settings': [boardSettingsSchema, boards.updateSettings as Mutation<z.ZodType>],
+  'board:timer': [boardTimerSchema, boards.setTimer as Mutation<z.ZodType>],
   'item:create': [itemCreateSchema, boards.createItem as Mutation<z.ZodType>],
   'item:update': [itemUpdateSchema, boards.updateItem as Mutation<z.ZodType>],
   'item:delete': [itemDeleteSchema, boards.deleteItem as Mutation<z.ZodType>],

@@ -1,6 +1,7 @@
 import type {
   BoardJoinInput,
   BoardSettingsInput,
+  BoardTimerInput,
   GroupMergeInput,
   GroupMoveInput,
   GroupUngroupInput,
@@ -20,6 +21,7 @@ export interface ClientToServerEvents {
   'board:join': Handler<BoardJoinInput, BoardSnapshot>
   'board:sync': Handler<Record<string, never>, BoardSnapshot>
   'board:settings': Handler<BoardSettingsInput>
+  'board:timer': Handler<BoardTimerInput>
   'item:create': Handler<ItemCreateInput>
   'item:update': Handler<ItemUpdateInput>
   'item:delete': Handler<ItemDeleteInput>

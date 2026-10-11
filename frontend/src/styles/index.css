@@ -163,3 +163,41 @@
   position: relative;
   z-index: 40;
 }
+
+/* When the timer runs out, every card gets a little shake (translate/rotate compose with motion's transforms) */
+@keyframes time-up-shake {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  15% {
+    translate: -5px 0;
+    rotate: -2deg;
+  }
+  30% {
+    translate: 5px -2px;
+    rotate: 2deg;
+  }
+  45% {
+    translate: -4px 0;
+    rotate: -1.5deg;
+  }
+  60% {
+    translate: 3px -1px;
+    rotate: 1deg;
+  }
+  80% {
+    translate: -1px 0;
+    rotate: -0.5deg;
+  }
+}
+.time-up .entry {
+  animation: time-up-shake 0.55s ease-in-out 3;
+}
+.time-up .entry:nth-child(3n + 2) {
+  animation-delay: 70ms;
+}
+.time-up .entry:nth-child(3n) {
+  animation-delay: 140ms;
+}
