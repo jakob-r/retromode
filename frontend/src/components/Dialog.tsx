@@ -42,7 +42,7 @@ export function Dialog({
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="relative w-full max-w-md rounded-3xl bg-paper p-6 shadow-2xl shadow-ink/20"
+            className="relative max-h-full w-full max-w-md overflow-y-auto rounded-3xl bg-paper p-6 shadow-2xl shadow-ink/20"
             initial={{ y: 40, scale: 0.94, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 24, scale: 0.96, opacity: 0 }}

@@ -25,6 +25,7 @@ export function BoardPage() {
   const navigate = useNavigate()
   const justCreated = !!(location.state as { justCreated?: boolean } | null)?.justCreated
   const [shareOpen, setShareOpen] = useState(false)
+  const [askName, setAskName] = useState(false)
 
   // An admin link (?owner=…) stores the owner key on this device, then hides it from the URL.
   const ownerParam = search.get('owner')
@@ -53,6 +54,7 @@ export function BoardPage() {
     if (status !== 'ready') return
     if (justCreated) {
       celebrate()
+      setAskName(!hasAnsweredNickname())
       setShareOpen(true)
       // Don't celebrate again on reload
       window.history.replaceState({}, '')
@@ -77,18 +79,24 @@ export function BoardPage() {
     >
       <FocusSky active={timerRunning} hideItems={timerRunning && !!board.timer?.hideItems} />
       {timeUp && <TimeUpBurst key={timeUps} seed={timeUps} />}
-      <Header board={board} online={online} status={status} onShare={() => setShareOpen(true)} />
+      <Header
+        board={board}
+        online={online}
+        status={status}
+        onShare={() => {
+          setAskName(false)
+          setShareOpen(true)
+        }}
+      />
       <LockBanner locked={board.locked} isOwner={board.isOwner} />
       <BoardColumns board={board} />
       <ShareDialog
         open={shareOpen}
-        onClose={() => {
-          setShareOpen(false)
-          if (justCreated && !hasAnsweredNickname()) useMe.getState().openNicknameDialog()
-        }}
+        onClose={() => setShareOpen(false)}
         slug={slug}
         isOwner={board.isOwner}
         justCreated={justCreated}
+        askName={askName}
       />
       <NicknameDialog />
       <MergeDialog />

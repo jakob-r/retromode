@@ -8,11 +8,13 @@ interface MeState {
   nicknameDialogOpen: boolean
   setNickname: (name: string | null) => void
   setAnonymous: (anonymous: boolean) => void
+  /** Answers the "what should we call you" prompt; an empty answer means staying anonymous */
+  answerNickname: (name: string) => void
   openNicknameDialog: () => void
   closeNicknameDialog: () => void
 }
 
-export const useMe = create<MeState>((set) => ({
+export const useMe = create<MeState>((set, get) => ({
   nickname: identity.getNickname(),
   anonymous: identity.getAnonymousPref(),
   nicknameDialogOpen: false,
@@ -25,6 +27,16 @@ export const useMe = create<MeState>((set) => ({
   setAnonymous: (anonymous) => {
     identity.setAnonymousPref(anonymous)
     set({ anonymous })
+  },
+  answerNickname: (name) => {
+    const { nickname, setNickname, setAnonymous } = get()
+    if (name.trim()) {
+      setNickname(name)
+      setAnonymous(false)
+    } else {
+      if (!nickname) setAnonymous(true)
+      identity.markNicknameAnswered()
+    }
   },
   openNicknameDialog: () => set({ nicknameDialogOpen: true }),
   closeNicknameDialog: () => {

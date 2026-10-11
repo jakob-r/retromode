@@ -29,8 +29,10 @@ test('two people collaborate on a board in real time', async ({ browser }) => {
   await expect(alice).toHaveURL(/\/b\/[A-Za-z0-9]{12}$/)
   const share = alice.getByRole('dialog', { name: /ready/i })
   await expect(share.getByLabel('Board link')).toHaveValue(alice.url())
+  // …and picks a nickname in the same dialog
+  await share.getByLabel('Nickname').fill('Alice')
   await share.getByRole('button', { name: "Let's retro" }).click()
-  await setNickname(alice, 'Alice')
+  await expect(share).toBeHidden()
 
   // Bob joins via the link
   await bob.goto(alice.url())
