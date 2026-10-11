@@ -72,14 +72,14 @@ A small, real-time retrospective board. You open the site, create a board, share
 
 ### 2.5 Voting (+1)
 - Every item has a 👍 button with its vote count.
-- **One vote per person per item.** Clicking again takes your vote back.
+- **Several votes per item allowed.** Each click on 👍 adds one more of your votes, as long as you have votes left in that column. Once you've voted on an item, a 👎 button appears right next to 👍; it takes back one of **your own** votes (nobody can remove anyone else's).
 - A **group's total** is the sum of its items' votes and shows in the group header. You vote on the single items inside a group, never on the group itself.
 - **Vote budget per column:** each participant has a limited number of votes **in each column**. The same limit applies to all three columns.
   - Default: **3 votes per column** (so 9 in total on a three-column board)
   - Each column header shows how many votes you have left there ("2 of 3 left") as little dots in the column's accent color.
-  - When your budget in a column is spent, that column's vote buttons are greyed out (you can still remove votes). The other columns are unaffected.
+  - When your budget in a column is spent, that column's vote buttons are greyed out (you can still take votes back with 👎). The other columns are unaffected.
   - Votes count toward the column the item is **currently** in. If an item moves to another column, its votes move with it. A voter who ends up over budget there keeps their votes but can't add new ones in that column until they're back under the limit.
-- Your own vote is highlighted, so you always know where your votes went.
+- Items you've voted on are highlighted, so you always know where your votes went.
 
 ### 2.6 Board settings (owner only)
 - A ⚙️ settings popover that only the board owner can see:
@@ -131,14 +131,14 @@ Anonymous really means anonymous for the other participants:
 - The server never broadcasts `clientId`s or any stable author ID.
 - Named items carry only the `nickname` that was shown when the item was posted or last edited.
 - Ownership is sent **per recipient** as a boolean `mine` flag. The server tailors payloads per socket, which is cheap because rooms are small.
-- Votes are sent as counts, plus `votedByMe` per recipient.
+- Votes are sent as counts, plus `myVotes` (how many of them are yours) per recipient.
 
 ### 3.4 Permission matrix
 
 | Action                         | Anyone | Author | Owner |
 |--------------------------------|:------:|:------:|:-----:|
 | View board, add items          | ✅     |        |       |
-| Vote / unvote (within budget)  | ✅     |        |       |
+| Add votes (within budget) / take back own votes | ✅     |        |       |
 | Move items, merge, ungroup     | ✅     |        |       |
 | Edit group title               | ✅     |        |       |
 | Edit item                      |        | ✅     |       |
@@ -281,13 +281,14 @@ Item
 Vote
   itemId          uuid  FK
   clientId        text
+  count           int   default 1       -- votes this person gave the item
   createdAt       timestamp
-  PK (itemId, clientId)                 -- one vote per person per item
+  PK (itemId, clientId)                 -- one row per person per item
 ```
 
 **Rules:**
 - An item's `column` always matches its group's `column`.
-- Votes used by a client in a column = `COUNT(votes JOIN items WHERE items.boardId = ? AND items.column = ? AND votes.clientId = ?)`. Checked inside the same transaction as the insert (with a row lock on the board) so two quick clicks can't overshoot the budget.
+- Votes used by a client in a column = `SUM(votes.count JOIN items WHERE items.boardId = ? AND items.column = ? AND votes.clientId = ?)`. Checked inside the same transaction as the insert (with a row lock on the board) so two quick clicks can't overshoot the budget.
 - All writes check `lockedAt IS NULL` first.
 - Deleting an item deletes its votes. That gives the votes back to whoever cast them.
 
@@ -323,7 +324,8 @@ Connect with `auth: { clientId }`, then join a board room. The typed event maps 
 | `group:ungroup`    | `{ groupId }` |
 | `group:update`     | `{ groupId, title }` |
 | `group:move`       | `{ groupId, column, afterId \| null }` |
-| `vote:toggle`      | `{ itemId }` |
+| `vote:add`         | `{ itemId }`: one more of my votes (within budget) |
+| `vote:remove`      | `{ itemId }`: take back one of my own votes |
 | `board:settings`   | `{ voteLimit?, title?, locked? }` (owner only) |
 | `board:timer`      | `{ seconds \| null, hideItems? }`: start/restart the shared timer, or stop it (anyone, also when locked) |
 
@@ -336,7 +338,7 @@ Moves send **`afterId`** (the entry to place after, `null` = first) rather than 
 | `board:patch`  | `{ board?, items?, groups?, deletedItemIds?, deletedGroupIds? }`: full current state of everything a mutation touched, applied atomically (a merge creates the group and moves the items in one patch) |
 | `presence`     | `{ online }`: distinct people in the room |
 
-Clients work out the vote budget themselves from `votedByMe` on the items in each column.
+Clients work out the vote budget themselves from `myVotes` on the items in each column.
 
 The server is **authoritative**: it validates (Zod), takes a row lock on the board, checks the lock, permissions and the vote budget, writes in a transaction, then broadcasts. Broadcasts are queued per board and always read fresh state, so a client never receives an older patch after a newer one.
 

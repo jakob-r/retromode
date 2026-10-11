@@ -76,7 +76,7 @@ export const itemLinkSchema = z.object({
   target: entryRefSchema.nullable(),
 })
 
-export const voteToggleSchema = z.object({ itemId: idSchema })
+export const voteSchema = z.object({ itemId: idSchema })
 
 export const boardSettingsSchema = z.object({
   title: z.string().trim().min(1).max(LIMITS.boardTitle).optional(),
@@ -103,6 +103,6 @@ export type GroupMergeInput = z.infer<typeof groupMergeSchema>
 export type GroupUngroupInput = z.infer<typeof groupUngroupSchema>
 export type GroupUpdateInput = z.infer<typeof groupUpdateSchema>
 export type GroupMoveInput = z.infer<typeof groupMoveSchema>
-export type VoteToggleInput = z.infer<typeof voteToggleSchema>
+export type VoteInput = z.infer<typeof voteSchema>
 export type BoardSettingsInput = z.infer<typeof boardSettingsSchema>
 export type BoardTimerInput = z.infer<typeof boardTimerSchema>

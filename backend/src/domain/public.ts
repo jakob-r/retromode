@@ -45,7 +45,7 @@ export function toPublicGroup(group: GroupRow): PublicGroup {
 
 export function toPublicItem(
   item: ItemRow,
-  voters: ReadonlySet<string> | undefined,
+  voters: ReadonlyMap<string, number> | undefined,
   viewer: Viewer,
 ): PublicItem {
   return {
@@ -56,8 +56,8 @@ export function toPublicItem(
     text: item.text,
     nickname: item.authorNickname,
     mine: item.authorClientId === viewer.clientId,
-    votes: voters?.size ?? 0,
-    votedByMe: voters?.has(viewer.clientId) ?? false,
+    votes: voters ? [...voters.values()].reduce((sum, n) => sum + n, 0) : 0,
+    myVotes: voters?.get(viewer.clientId) ?? 0,
     link: item.linkedGroupId
       ? { type: 'group', id: item.linkedGroupId }
       : item.linkedItemId

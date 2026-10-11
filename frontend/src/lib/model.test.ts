@@ -16,7 +16,7 @@ function item(fields: Partial<PublicItem> = {}): PublicItem {
     nickname: null,
     mine: false,
     votes: 0,
-    votedByMe: false,
+    myVotes: 0,
     link: null,
     createdAt: '',
     updatedAt: '',
@@ -47,15 +47,21 @@ describe('board model', () => {
     expect(model.columnEntries(data, 'well').map((e) => e.id)).toEqual([a.id, c.id])
   })
 
-  it('counts used votes per column and toggles votes', () => {
-    const a = item({ votedByMe: true, votes: 1 })
+  it('counts used votes per column and adds and removes votes', () => {
+    const a = item({ myVotes: 2, votes: 3 })
     const b = item({ column: 'improve' })
     let data = model.fromLists([], [a, b])
-    expect(model.votesUsed(data, 'well')).toBe(1)
+    expect(model.votesUsed(data, 'well')).toBe(2)
     expect(model.votesUsed(data, 'improve')).toBe(0)
-    data = model.toggleVote(data, b.id)
-    expect(data.items[b.id]).toMatchObject({ votes: 1, votedByMe: true })
-    expect(model.votesUsed(data, 'improve')).toBe(1)
+    data = model.vote(data, b.id, 1)
+    data = model.vote(data, b.id, 1)
+    expect(data.items[b.id]).toMatchObject({ votes: 2, myVotes: 2 })
+    expect(model.votesUsed(data, 'improve')).toBe(2)
+    data = model.vote(data, a.id, -1)
+    expect(data.items[a.id]).toMatchObject({ votes: 2, myVotes: 1 })
+    // Can't take back votes that aren't mine
+    data = model.vote(model.vote(data, a.id, -1), a.id, -1)
+    expect(data.items[a.id]).toMatchObject({ votes: 1, myVotes: 0 })
   })
 
   it('ungroups in place and applies server patches', () => {

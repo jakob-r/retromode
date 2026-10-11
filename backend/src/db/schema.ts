@@ -95,6 +95,8 @@ export const votes = pgTable(
       .notNull()
       .references(() => items.id, { onDelete: 'cascade' }),
     clientId: uuid('client_id').notNull(),
+    /** One row per person and item; important items can get several votes */
+    count: integer('count').notNull().default(1),
     ...timestamps,
   },
   (t) => [

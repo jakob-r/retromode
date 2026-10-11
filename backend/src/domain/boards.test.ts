@@ -64,7 +64,7 @@ describe('items', () => {
     const { actor, addItem, state } = await setupBoard()
     const author = actor()
     const id = await addItem(author, 'well', 'secret', { anonymous: true })
-    await boards.toggleVote(db, author, { itemId: id })
+    await boards.addVote(db, author, { itemId: id })
     const forOther = snapshotFor(await state(), { clientId: randomUUID(), isOwner: false }, 2)
     const json = JSON.stringify(forOther)
     expect(json).not.toContain(author.clientId)
@@ -72,10 +72,10 @@ describe('items', () => {
       nickname: null,
       mine: false,
       votes: 1,
-      votedByMe: false,
+      myVotes: 0,
     })
     const forAuthor = snapshotFor(await state(), author, 2)
-    expect(forAuthor.items[0]).toMatchObject({ mine: true, votedByMe: true })
+    expect(forAuthor.items[0]).toMatchObject({ mine: true, myVotes: 1 })
   })
 })
 
@@ -86,19 +86,43 @@ describe('votes', () => {
     const well = await Promise.all([1, 2, 3, 4].map(() => addItem(me, 'well')))
     const improve = await addItem(me, 'improve')
 
-    for (const id of well.slice(0, 3)) await boards.toggleVote(db, me, { itemId: id })
-    await rejects(boards.toggleVote(db, me, { itemId: well[3]! }), 'VOTE_LIMIT')
+    for (const id of well.slice(0, 3)) await boards.addVote(db, me, { itemId: id })
+    await rejects(boards.addVote(db, me, { itemId: well[3]! }), 'VOTE_LIMIT')
     // Another column has its own budget
-    await boards.toggleVote(db, me, { itemId: improve })
-    // Toggling off frees a vote
-    await boards.toggleVote(db, me, { itemId: well[0]! })
-    await boards.toggleVote(db, me, { itemId: well[3]! })
+    await boards.addVote(db, me, { itemId: improve })
+    // Taking one back frees a vote
+    await boards.removeVote(db, me, { itemId: well[0]! })
+    await boards.addVote(db, me, { itemId: well[3]! })
 
     // Lowering the limit keeps existing votes but blocks new ones
     await boards.updateSettings(db, ownerActor, { voteLimit: 1 })
-    await rejects(boards.toggleVote(db, me, { itemId: well[0]! }), 'VOTE_LIMIT')
+    await rejects(boards.addVote(db, me, { itemId: well[0]! }), 'VOTE_LIMIT')
     const voters = (await state()).voters
     expect(well.filter((id) => voters.get(id)?.has(me.clientId))).toHaveLength(3)
+  })
+
+  it('lets one person put several votes on an item and take only their own back', async () => {
+    const { actor, addItem, state } = await setupBoard()
+    const me = actor()
+    const other = actor()
+    const [id, rest] = [await addItem(me, 'well'), await addItem(me, 'well')]
+
+    for (let i = 0; i < 3; i++) await boards.addVote(db, me, { itemId: id })
+    await rejects(boards.addVote(db, me, { itemId: rest }), 'VOTE_LIMIT')
+    await boards.addVote(db, other, { itemId: id })
+    // Removing without own votes changes nothing
+    await boards.removeVote(db, actor(), { itemId: id })
+    expect(snapshotFor(await state(), me, 1).items.find((i) => i.id === id)).toMatchObject({
+      votes: 4,
+      myVotes: 3,
+    })
+
+    await boards.removeVote(db, me, { itemId: id })
+    await boards.addVote(db, me, { itemId: rest })
+    for (let i = 0; i < 2; i++) await boards.removeVote(db, me, { itemId: id })
+    const voters = (await state()).voters
+    expect(voters.get(id)).toEqual(new Map([[other.clientId, 1]]))
+    expect(voters.get(rest)?.get(me.clientId)).toBe(1)
   })
 
   it('serializes concurrent votes so the budget cannot be exceeded', async () => {
@@ -106,7 +130,7 @@ describe('votes', () => {
     const me = actor()
     const ids = await Promise.all([1, 2, 3, 4, 5, 6].map(() => addItem(me, 'actions')))
     const results = await Promise.allSettled(
-      ids.map((id) => boards.toggleVote(db, me, { itemId: id })),
+      ids.map((id) => boards.addVote(db, me, { itemId: id })),
     )
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(3)
     const voters = (await state()).voters
@@ -122,8 +146,8 @@ describe('grouping', () => {
     const x = await addItem(a, 'well', 'x')
     const y = await addItem(a, 'well', 'y')
     const z = await addItem(a, 'well', 'z') // order: z, y, x
-    await boards.toggleVote(db, a, { itemId: x })
-    await boards.toggleVote(db, b, { itemId: z })
+    await boards.addVote(db, a, { itemId: x })
+    await boards.addVote(db, b, { itemId: z })
 
     const groupId = randomUUID()
     await boards.mergeEntries(db, b, {
@@ -325,14 +349,14 @@ describe('owner settings & lock', () => {
 
     await rejects(addItem(a), 'LOCKED')
     await rejects(addItem(ownerActor), 'LOCKED')
-    await rejects(boards.toggleVote(db, a, { itemId: id }), 'LOCKED')
+    await rejects(boards.addVote(db, a, { itemId: id }), 'LOCKED')
     await rejects(boards.updateItem(db, a, { itemId: id, text: 'x' }), 'LOCKED')
     await rejects(boards.deleteItem(db, ownerActor, { itemId: id }), 'LOCKED')
     await rejects(boards.updateSettings(db, ownerActor, { voteLimit: 9 }), 'LOCKED')
     await rejects(boards.updateSettings(db, a, { locked: false }), 'FORBIDDEN')
 
     await boards.updateSettings(db, ownerActor, { locked: false })
-    await boards.toggleVote(db, a, { itemId: id })
+    await boards.addVote(db, a, { itemId: id })
   })
 })
 

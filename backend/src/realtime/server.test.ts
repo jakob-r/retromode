@@ -97,8 +97,8 @@ describe('realtime', () => {
     expect(JSON.stringify(forBob)).not.toContain(ownerId)
 
     const voted = nextPatch(alice)
-    expect((await emit(bob, 'vote:toggle', { itemId })).ok).toBe(true)
-    expect((await voted).items?.[0]).toMatchObject({ votes: 1, votedByMe: false })
+    expect((await emit(bob, 'vote:add', { itemId })).ok).toBe(true)
+    expect((await voted).items?.[0]).toMatchObject({ votes: 1, myVotes: 0 })
 
     // Bob can't change settings, but can claim ownership with the owner key
     const denied = await emit(bob, 'board:settings', { voteLimit: 7 })
@@ -108,7 +108,7 @@ describe('realtime', () => {
     const locked = nextPatch(alice)
     expect((await emit(bob, 'board:settings', { locked: true })).ok).toBe(true)
     expect((await locked).board).toMatchObject({ locked: true, isOwner: true })
-    expect(await emit(alice, 'vote:toggle', { itemId })).toMatchObject({
+    expect(await emit(alice, 'vote:add', { itemId })).toMatchObject({
       ok: false,
       error: 'LOCKED',
     })

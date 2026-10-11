@@ -1,0 +1,1 @@
+ALTER TABLE "votes" ADD COLUMN "count" integer DEFAULT 1 NOT NULL;

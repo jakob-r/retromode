@@ -207,7 +207,7 @@ export const actions = {
           nickname: named ? nickname : null,
           mine: true,
           votes: 0,
-          votedByMe: false,
+          myVotes: 0,
           link,
           createdAt: now,
           updatedAt: now,
@@ -258,16 +258,22 @@ export const actions = {
   },
 
   /** Returns false (without sending) when the column's vote budget is spent. */
-  toggleVote(itemId: string): boolean {
+  addVote(itemId: string): boolean {
     const { board, items } = get()
     const item = items[itemId]
     if (!board || !item) return false
-    if (!item.votedByMe && model.votesUsed(data(), item.column) >= board.voteLimit) {
+    if (model.votesUsed(data(), item.column) >= board.voteLimit) {
       toast(MESSAGES.VOTE_LIMIT!, 'error')
       return false
     }
-    mutate('vote:toggle', { itemId }, (d) => model.toggleVote(d, itemId))
+    mutate('vote:add', { itemId }, (d) => model.vote(d, itemId, 1))
     return true
+  },
+
+  /** Takes back one of my own votes. */
+  removeVote(itemId: string) {
+    if (!get().items[itemId]?.myVotes) return
+    mutate('vote:remove', { itemId }, (d) => model.vote(d, itemId, -1))
   },
 
   updateSettings(input: BoardSettingsInput) {

@@ -16,7 +16,7 @@ import {
   itemLinkSchema,
   itemMoveSchema,
   itemUpdateSchema,
-  voteToggleSchema,
+  voteSchema,
   type Ack,
   type BoardSnapshot,
   type ClientToServerEvents,
@@ -60,7 +60,8 @@ const mutations: { [E in MutationEvent]: [z.ZodType, Mutation<z.ZodType>] } = {
   'group:ungroup': [groupUngroupSchema, boards.ungroup as Mutation<z.ZodType>],
   'group:update': [groupUpdateSchema, boards.updateGroup as Mutation<z.ZodType>],
   'group:move': [groupMoveSchema, boards.moveGroup as Mutation<z.ZodType>],
-  'vote:toggle': [voteToggleSchema, boards.toggleVote as Mutation<z.ZodType>],
+  'vote:add': [voteSchema, boards.addVote as Mutation<z.ZodType>],
+  'vote:remove': [voteSchema, boards.removeVote as Mutation<z.ZodType>],
 }
 
 function fail(error: unknown, log: FastifyBaseLogger): Ack<never> {

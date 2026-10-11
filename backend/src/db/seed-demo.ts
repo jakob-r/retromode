@@ -56,7 +56,7 @@ const votesFor: [number, number[]][] = [
   [8, [0, 1]],
 ]
 for (const [item, voters] of votesFor) {
-  for (const v of voters) await boards.toggleVote(db, people[v]!.actor, { itemId: ids[item]! })
+  for (const v of voters) await boards.addVote(db, people[v]!.actor, { itemId: ids[item]! })
 }
 
 const base = `http://localhost:${process.env.FRONTEND_PORT ?? 5173}`

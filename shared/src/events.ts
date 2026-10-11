@@ -11,7 +11,7 @@ import type {
   ItemLinkInput,
   ItemMoveInput,
   ItemUpdateInput,
-  VoteToggleInput,
+  VoteInput,
 } from './schemas'
 import type { Ack, BoardPatch, BoardSnapshot } from './types'
 
@@ -31,7 +31,8 @@ export interface ClientToServerEvents {
   'group:ungroup': Handler<GroupUngroupInput>
   'group:update': Handler<GroupUpdateInput>
   'group:move': Handler<GroupMoveInput>
-  'vote:toggle': Handler<VoteToggleInput>
+  'vote:add': Handler<VoteInput>
+  'vote:remove': Handler<VoteInput>
 }
 
 export interface ServerToClientEvents {

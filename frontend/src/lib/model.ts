@@ -72,7 +72,9 @@ function topLevel(data: BoardData, column: ColumnKey): Positioned[] {
 }
 
 export function votesUsed(data: BoardData, column: ColumnKey): number {
-  return Object.values(data.items).filter((i) => i.column === column && i.votedByMe).length
+  return Object.values(data.items)
+    .filter((i) => i.column === column)
+    .reduce((sum, i) => sum + i.myVotes, 0)
 }
 
 export function columnCount(data: BoardData, column: ColumnKey): number {
@@ -304,15 +306,12 @@ export function entryLabel(data: BoardData, ref: EntryRef): string | null {
   return group.title || groupMembers(data, group.id)[0]?.text || 'Group'
 }
 
-export function toggleVote(data: BoardData, itemId: string): BoardData {
+/** Adds (+1) or takes back (-1) one of my votes on an item. */
+export function vote(data: BoardData, itemId: string, delta: 1 | -1): BoardData {
   const item = data.items[itemId]
-  if (!item) return data
+  if (!item || item.myVotes + delta < 0) return data
   const next = clone(data)
-  next.items[itemId] = {
-    ...item,
-    votedByMe: !item.votedByMe,
-    votes: item.votes + (item.votedByMe ? -1 : 1),
-  }
+  next.items[itemId] = { ...item, myVotes: item.myVotes + delta, votes: item.votes + delta }
   return next
 }
 

@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { and, count, eq, inArray, isNull, lt } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, sql, sum } from 'drizzle-orm'
 import { customAlphabet } from 'nanoid'
 import {
   positionAfter,
@@ -20,7 +20,7 @@ import {
   type ItemMoveInput,
   type ItemUpdateInput,
   type Positioned,
-  type VoteToggleInput,
+  type VoteInput,
 } from '@retromode/shared'
 import type { Db, DbOrTx, Tx } from '../db/client'
 import {
@@ -88,21 +88,24 @@ export interface BoardState {
   board: BoardRow
   groups: GroupRow[]
   items: ItemRow[]
-  /** itemId → clientIds that voted for it (server-side only) */
-  voters: Map<string, Set<string>>
+  /** itemId → clientId → number of votes that client gave it (server-side only) */
+  voters: Map<string, Map<string, number>>
 }
 
-async function loadVoters(db: DbOrTx, itemIds: string[]): Promise<Map<string, Set<string>>> {
-  const voters = new Map<string, Set<string>>()
+async function loadVoters(
+  db: DbOrTx,
+  itemIds: string[],
+): Promise<Map<string, Map<string, number>>> {
+  const voters = new Map<string, Map<string, number>>()
   if (itemIds.length === 0) return voters
   const rows = await db
-    .select({ itemId: votes.itemId, clientId: votes.clientId })
+    .select({ itemId: votes.itemId, clientId: votes.clientId, count: votes.count })
     .from(votes)
     .where(inArray(votes.itemId, itemIds))
   for (const row of rows) {
-    let set = voters.get(row.itemId)
-    if (!set) voters.set(row.itemId, (set = new Set()))
-    set.add(row.clientId)
+    let byClient = voters.get(row.itemId)
+    if (!byClient) voters.set(row.itemId, (byClient = new Map()))
+    byClient.set(row.clientId, row.count)
   }
   return voters
 }
@@ -506,30 +509,50 @@ export function moveGroup(db: Db, actor: Actor, input: GroupMoveInput): Promise<
 // ---------------------------------------------------------------------------
 // Votes
 
-export function toggleVote(db: Db, actor: Actor, input: VoteToggleInput): Promise<Changes> {
+/** Gives an item one more of your votes; several can go to the same item. */
+export function addVote(db: Db, actor: Actor, input: VoteInput): Promise<Changes> {
   return mutate(db, actor, async (tx, board, changes) => {
     const item = await getItem(tx, board.id, input.itemId)
-    const removed = await tx
-      .delete(votes)
-      .where(and(eq(votes.itemId, item.id), eq(votes.clientId, actor.clientId)))
-      .returning({ itemId: votes.itemId })
-    if (removed.length === 0) {
-      // The budget is per column: count this client's votes on items in the item's column.
-      const [used] = await tx
-        .select({ n: count() })
-        .from(votes)
-        .innerJoin(items, eq(items.id, votes.itemId))
-        .where(
-          and(
-            eq(items.boardId, board.id),
-            eq(items.column, item.column),
-            eq(votes.clientId, actor.clientId),
-          ),
-        )
-      if ((used?.n ?? 0) >= board.voteLimit) {
-        throw new DomainError('VOTE_LIMIT', 'No votes left in this column')
-      }
-      await tx.insert(votes).values({ itemId: item.id, clientId: actor.clientId })
+    // The budget is per column: sum this client's votes on items in the item's column.
+    const [used] = await tx
+      .select({ n: sum(votes.count).mapWith(Number) })
+      .from(votes)
+      .innerJoin(items, eq(items.id, votes.itemId))
+      .where(
+        and(
+          eq(items.boardId, board.id),
+          eq(items.column, item.column),
+          eq(votes.clientId, actor.clientId),
+        ),
+      )
+    if ((used?.n ?? 0) >= board.voteLimit) {
+      throw new DomainError('VOTE_LIMIT', 'No votes left in this column')
+    }
+    await tx
+      .insert(votes)
+      .values({ itemId: item.id, clientId: actor.clientId })
+      .onConflictDoUpdate({
+        target: [votes.itemId, votes.clientId],
+        set: { count: sql`${votes.count} + 1` },
+      })
+    changes.item(item.id)
+  })
+}
+
+/** Takes back one of your own votes from an item (a no-op if you have none there). */
+export function removeVote(db: Db, actor: Actor, input: VoteInput): Promise<Changes> {
+  return mutate(db, actor, async (tx, board, changes) => {
+    const item = await getItem(tx, board.id, input.itemId)
+    const mine = and(eq(votes.itemId, item.id), eq(votes.clientId, actor.clientId))
+    const [row] = await tx.select({ count: votes.count }).from(votes).where(mine)
+    if (!row) return
+    if (row.count > 1) {
+      await tx
+        .update(votes)
+        .set({ count: sql`${votes.count} - 1` })
+        .where(mine)
+    } else {
+      await tx.delete(votes).where(mine)
     }
     changes.item(item.id)
   })
