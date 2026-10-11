@@ -72,7 +72,7 @@ A small, real-time retrospective board. You open the site, create a board, share
 
 ### 2.5 Voting (+1)
 - Every item has a 👍 button with its vote count.
-- **Several votes per item allowed.** Each click on 👍 adds one more of your votes, as long as you have votes left in that column. Once you've voted on an item, a 👎 button appears right next to 👍; it takes back one of **your own** votes (nobody can remove anyone else's).
+- **Several votes per item allowed.** Each click on 👍 adds one more of your votes, as long as you have votes left in that column. Once you've voted on an item, a 👎 button appears to the left of 👍; it takes back one of **your own** votes (nobody can remove anyone else's).
 - A **group's total** is the sum of its items' votes and shows in the group header. You vote on the single items inside a group, never on the group itself.
 - **Vote budget per column:** each participant has a limited number of votes **in each column**. The same limit applies to all three columns.
   - Default: **3 votes per column** (so 9 in total on a three-column board)

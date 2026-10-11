@@ -36,6 +36,24 @@ export function VoteButton({
 
   return (
     <div className="flex shrink-0 items-center gap-1">
+      <AnimatePresence initial={false}>
+        {voted && !locked && (
+          <motion.button
+            type="button"
+            initial={{ scale: 0, opacity: 0, width: 0 }}
+            animate={{ scale: 1, opacity: 1, width: 'auto' }}
+            exit={{ scale: 0, opacity: 0, width: 0 }}
+            transition={{ duration: 0.18 }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => actions.removeVote(item.id)}
+            aria-label={`Take back one of your votes (${item.myVotes} from you)`}
+            title="Take back one of your votes"
+            className="flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-[var(--accent-tint)] p-1.5 text-[var(--accent-deep)] transition-colors hover:brightness-95"
+          >
+            <ThumbsDown size={14} strokeWidth={2.5} />
+          </motion.button>
+        )}
+      </AnimatePresence>
       <button
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
@@ -70,24 +88,6 @@ export function VoteButton({
           </AnimatePresence>
         </span>
       </button>
-      <AnimatePresence initial={false}>
-        {voted && !locked && (
-          <motion.button
-            type="button"
-            initial={{ scale: 0, opacity: 0, width: 0 }}
-            animate={{ scale: 1, opacity: 1, width: 'auto' }}
-            exit={{ scale: 0, opacity: 0, width: 0 }}
-            transition={{ duration: 0.18 }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => actions.removeVote(item.id)}
-            aria-label={`Take back one of your votes (${item.myVotes} from you)`}
-            title="Take back one of your votes"
-            className="flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-[var(--accent-tint)] p-1.5 text-[var(--accent-deep)] transition-colors hover:brightness-95"
-          >
-            <ThumbsDown size={14} strokeWidth={2.5} />
-          </motion.button>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
