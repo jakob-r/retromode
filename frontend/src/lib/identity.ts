@@ -51,6 +51,22 @@ export const markNicknameAnswered = () => write('nicknameAsked', '1')
 export const getAnonymousPref = () => read('anonymous') === '1'
 export const setAnonymousPref = (anonymous: boolean) => write('anonymous', anonymous ? '1' : '0')
 
+/** Board-creator defaults, remembered for the next board */
+export function getVoteLimitPref(): number | undefined {
+  const n = Number(read('voteLimit'))
+  return Number.isInteger(n) && n > 0 ? n : undefined
+}
+export const setVoteLimitPref = (limit: number) => write('voteLimit', String(limit))
+
+export function getTimerSecondsPref(): number | undefined {
+  const n = Number(read('timerSeconds'))
+  return Number.isInteger(n) && n > 0 ? n : undefined
+}
+export const setTimerSecondsPref = (seconds: number) => write('timerSeconds', String(seconds))
+
+export const getTimerHideItemsPref = () => read('timerHideItems') === '1'
+export const setTimerHideItemsPref = (hide: boolean) => write('timerHideItems', hide ? '1' : '0')
+
 export const getOwnerKey = (slug: string) => read(`ownerKey:${slug}`) ?? undefined
 export const setOwnerKey = (slug: string, key: string) => write(`ownerKey:${slug}`, key)
 export const forgetOwnerKey = (slug: string) => write(`ownerKey:${slug}`, null)

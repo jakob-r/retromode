@@ -11,6 +11,7 @@ const nickname = z.string().trim().min(1).max(LIMITS.nickname)
 export const createBoardSchema = z.object({
   title: z.string().trim().max(LIMITS.boardTitle).optional(),
   clientId: idSchema,
+  voteLimit: z.number().int().min(LIMITS.voteLimitMin).max(LIMITS.voteLimitMax).optional(),
 })
 
 export const boardJoinSchema = z.object({

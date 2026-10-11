@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Lock, LockOpen, Minus, Plus, Radiation, Settings } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { LIMITS, type PublicBoard } from '@retromode/shared'
+import { setVoteLimitPref } from '../lib/identity'
 import { actions } from '../store/board'
 import { CopyField } from './CopyField'
 import { NukeDialog } from './NukeDialog'
@@ -36,6 +37,7 @@ export function SettingsPopover({ board }: { board: PublicBoard }) {
   const setLimit = (voteLimit: number) => {
     if (voteLimit >= LIMITS.voteLimitMin && voteLimit <= LIMITS.voteLimitMax) {
       actions.updateSettings({ voteLimit })
+      setVoteLimitPref(voteLimit)
     }
   }
 

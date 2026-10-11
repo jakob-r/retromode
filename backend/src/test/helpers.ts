@@ -6,9 +6,9 @@ import { testDatabaseUrl } from './global-setup'
 
 export const { db, pool } = createDb(testDatabaseUrl())
 
-export async function setupBoard() {
+export async function setupBoard(voteLimit = 3) {
   const owner = randomUUID()
-  const { slug, ownerKey } = await boards.createBoard(db, { clientId: owner })
+  const { slug, ownerKey } = await boards.createBoard(db, { clientId: owner, voteLimit })
   const board = (await boards.findBoardBySlug(db, slug))!
   const actor = (clientId: string = randomUUID()): boards.Actor => ({
     boardId: board.id,

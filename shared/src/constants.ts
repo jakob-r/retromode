@@ -8,7 +8,7 @@ export const LIMITS = {
   groupTitle: 120,
   voteLimitMin: 1,
   voteLimitMax: 20,
-  defaultVoteLimit: 3,
+  defaultVoteLimit: 5,
   timerMinSeconds: 10,
   timerMaxSeconds: 60 * 60,
   defaultTimerSeconds: 5 * 60,

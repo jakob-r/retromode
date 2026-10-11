@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { LIMITS, type CreateBoardResponse } from '@retromode/shared'
 import { COLUMN_META } from '../lib/columns'
-import { getClientId, setOwnerKey } from '../lib/identity'
+import { getClientId, getVoteLimitPref, setOwnerKey } from '../lib/identity'
 import { toast } from '../store/toasts'
 import { LegalLinks } from '../components/LegalLinks'
 import { Logo } from '../components/Logo'
@@ -29,7 +29,11 @@ export function Landing() {
       const res = await fetch('/api/boards', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: title.trim() || undefined, clientId: getClientId() }),
+        body: JSON.stringify({
+          title: title.trim() || undefined,
+          clientId: getClientId(),
+          voteLimit: getVoteLimitPref(),
+        }),
       })
       if (!res.ok)
         throw new Error(

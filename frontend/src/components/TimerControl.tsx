@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Minus, Play, Plus, RotateCcw, Square, Timer } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { LIMITS } from '@retromode/shared'
+import * as identity from '../lib/identity'
 import { actions, useBoard } from '../store/board'
 
 const MIN_MINUTES = 1
@@ -31,9 +32,11 @@ export function TimerControl() {
   const running = remaining !== null
   const lastSeconds = useBoard((s) => s.board?.timer?.seconds)
   const hidingNow = useBoard((s) => !!s.board?.timer?.hideItems)
-  const [hideItems, setHideItems] = useState(false)
+  const [hideItems, setHideItems] = useState(identity.getTimerHideItemsPref)
   const [open, setOpen] = useState(false)
-  const [minutes, setMinutes] = useState(LIMITS.defaultTimerSeconds / 60)
+  const [minutes, setMinutes] = useState(
+    () => (identity.getTimerSecondsPref() ?? LIMITS.defaultTimerSeconds) / 60,
+  )
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -58,6 +61,8 @@ export function TimerControl() {
 
   const start = () => {
     actions.setTimer(minutes * 60, hideItems)
+    identity.setTimerSecondsPref(minutes * 60)
+    identity.setTimerHideItemsPref(hideItems)
     setOpen(false)
   }
   const stop = () => {

@@ -2,6 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { and, eq, inArray, isNull, lt, sql, sum } from 'drizzle-orm'
 import { customAlphabet } from 'nanoid'
 import {
+  LIMITS,
   positionAfter,
   positionsBetween,
   sortPositioned,
@@ -56,7 +57,7 @@ function defaultTitle(now = new Date()): string {
 
 export async function createBoard(
   db: Db,
-  input: { title?: string; clientId: string },
+  input: { title?: string; clientId: string; voteLimit?: number },
 ): Promise<CreateBoardResponse> {
   const ownerKey = randomBytes(18).toString('base64url')
   const [board] = await db
@@ -66,6 +67,7 @@ export async function createBoard(
       title: input.title?.trim() || defaultTitle(),
       ownerClientId: input.clientId,
       ownerKeyHash: hashKey(ownerKey),
+      voteLimit: input.voteLimit ?? LIMITS.defaultVoteLimit,
     })
     .returning({ slug: boards.slug })
   return { slug: board!.slug, ownerKey }

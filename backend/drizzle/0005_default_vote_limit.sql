@@ -1,0 +1,1 @@
+ALTER TABLE "boards" ALTER COLUMN "vote_limit" SET DEFAULT 5;

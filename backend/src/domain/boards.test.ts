@@ -25,6 +25,11 @@ describe('boards', () => {
     expect(boards.isBoardOwner(board, randomUUID(), ownerKey)).toBe(true)
     expect(boards.isBoardOwner(board, randomUUID(), 'wrong')).toBe(false)
   })
+
+  it('defaults to five votes per person', async () => {
+    const { slug } = await boards.createBoard(db, { clientId: randomUUID() })
+    expect((await boards.findBoardBySlug(db, slug))!.voteLimit).toBe(5)
+  })
 })
 
 describe('items', () => {
