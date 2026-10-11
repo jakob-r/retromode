@@ -8,8 +8,6 @@ const EMOJIS: Partial<Record<ColumnKey, string[]>> = {
   improve: ['😩', '💩', '😤', '🌧️', '👎', '😬', '🙈', '💔', '🐌', '🤦', '🥲', '⛈️'],
 }
 
-const COUNT = 10
-
 /** Deterministic hash, so every client picks the same emoji for an item. */
 function hash(s: string): number {
   let h = 2166136261
@@ -17,28 +15,48 @@ function hash(s: string): number {
   return h >>> 0
 }
 
+/** A random emoji from the column's set, or null for columns without one. */
+export function randomEmoji(column: ColumnKey): string | null {
+  const set = EMOJIS[column]
+  return set ? set[Math.floor(Math.random() * set.length)]! : null
+}
+
 /** A fountain of one emoji over a freshly created item (positive or negative column). */
 export function EmojiBurst({ itemId, column }: { itemId: string; column: ColumnKey }) {
   const set = EMOJIS[column]
   const h = hash(itemId)
-  const emoji = set?.[h % set.length]
+  return <EmojiFountain emoji={set?.[h % set.length] ?? null} seed={h} />
+}
 
+/** Sprays `count` copies of one emoji upwards from the middle of the parent. */
+export function EmojiFountain({
+  emoji,
+  seed: initialSeed,
+  count = 10,
+  spread = 1,
+}: {
+  emoji: string | null
+  seed: number
+  count?: number
+  /** Scales how far the particles fly */
+  spread?: number
+}) {
   const particles = useMemo(() => {
-    let seed = h || 1
+    let seed = initialSeed || 1
     const rand = () => ((seed = Math.imul(seed ^ (seed >>> 15), 2246822507) >>> 0) % 1000) / 1000
-    return Array.from({ length: COUNT }, (_, i) => {
+    return Array.from({ length: count }, (_, i) => {
       const angle =
-        (-90 + (i - (COUNT - 1) / 2) * (160 / COUNT) + (rand() - 0.5) * 12) * (Math.PI / 180)
-      const distance = 50 + rand() * 50
+        (-90 + (i - (count - 1) / 2) * (160 / count) + (rand() - 0.5) * 12) * (Math.PI / 180)
+      const distance = (50 + rand() * 50) * spread
       return {
         x: Math.cos(angle) * distance,
         y: Math.sin(angle) * distance,
-        size: 16 + rand() * 12,
+        size: (16 + rand() * 12) * Math.sqrt(spread),
         rotate: (rand() - 0.5) * 120,
         delay: rand() * 0.15,
       }
     })
-  }, [h])
+  }, [initialSeed, count, spread])
 
   if (!emoji || prefersReducedMotion()) return null
 
