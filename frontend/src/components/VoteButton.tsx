@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useAnimate } from 'motion/react'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useState } from 'react'
 import type { PublicItem } from '@retromode/shared'
-import { hash } from '../lib/emoji'
+import { hasEmojis, hash } from '../lib/emoji'
 import { actions, useBoard } from '../store/board'
 import { EmojiFountain } from './EmojiBurst'
 import { SparkleBurst } from './Sparkles'
@@ -27,7 +27,8 @@ export function VoteButton({
       void animate(scope.current, { x: [0, -4, 4, -2, 0] }, { duration: 0.35 })
       return
     }
-    setBurst((b) => b + 1)
+    // Columns with an emoji set get the emoji spray (from the store) instead of sparkles
+    if (!hasEmojis(item.column)) setBurst((b) => b + 1)
     void animate(
       scope.current,
       { scale: [1, 1.35, 0.9, 1], rotate: [0, -14, 6, 0] },

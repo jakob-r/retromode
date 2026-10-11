@@ -13,6 +13,10 @@ export function hash(s: string): number {
   return h >>> 0
 }
 
+export function hasEmojis(column: ColumnKey): boolean {
+  return !!EMOJIS[column]
+}
+
 /** The column's emoji for `key`, or null for columns without a set. */
 export function pickEmoji(column: ColumnKey, key: string): string | null {
   const set = EMOJIS[column]
