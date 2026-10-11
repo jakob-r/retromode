@@ -96,6 +96,18 @@ importers:
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@fontsource-variable/bricolage-grotesque':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/noto-sans-egyptian-hieroglyphs':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/noto-sans-runic':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@retromode/shared':
         specifier: workspace:*
         version: link:../shared
@@ -931,6 +943,18 @@ packages:
 
   '@fastify/static@10.1.6':
     resolution: {integrity: sha512-f3x9XisI+y6AIhIfA/+Q3SFsuXeqNNk5HQh5htgHsPxmMLb4pLFskV6eFaLSW3IbI4azrS5np+/tkzXNH99LyQ==}
+
+  '@fontsource-variable/bricolage-grotesque@5.3.0':
+    resolution: {integrity: sha512-TLi9Q4hJjS2UvoTMRSS2nHu6c4R56lAw60NR9QYtVRCHn0XtsFpiEhNffZ8Glsoxu6wEEwLKBP8lb94J52PNBA==}
+
+  '@fontsource-variable/inter@5.3.0':
+    resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+
+  '@fontsource/noto-sans-egyptian-hieroglyphs@5.3.0':
+    resolution: {integrity: sha512-EH4qehyb0kGOK3f355PsPKUUCnSMCv9jWPy6v004CNcPX8d0xcYBJAXjBoCWFqlTSXAaGcUbuPh6dJHYqgMi8g==}
+
+  '@fontsource/noto-sans-runic@5.3.0':
+    resolution: {integrity: sha512-MzUcFl+mURDW9NBk4qhZsxrdiNkXNL94mr/LClA05PPnHMINSuxxowmcAeKru1PaepWfztkaCgrVrfExqhJDOw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -3560,6 +3584,14 @@ snapshots:
       fastify-plugin: 6.0.1
       fastq: 1.20.3
       glob: 13.0.6
+
+  '@fontsource-variable/bricolage-grotesque@5.3.0': {}
+
+  '@fontsource-variable/inter@5.3.0': {}
+
+  '@fontsource/noto-sans-egyptian-hieroglyphs@5.3.0': {}
+
+  '@fontsource/noto-sans-runic@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import Fastify, { LogController, type FastifyInstance } from 'fastify'
 import rateLimit from '@fastify/rate-limit'
@@ -41,10 +41,19 @@ export async function buildApp(config: Config, db: Db): Promise<App> {
   const indexHtml = path.join(config.STATIC_DIR, 'index.html')
   if (existsSync(indexHtml)) {
     await app.register(fastifyStatic, { root: config.STATIC_DIR, wildcard: false })
+    const boardHtml = withoutPreviewImage(readFileSync(indexHtml, 'utf8'))
     // Single-page app: every non-API route renders index.html.
     app.setNotFoundHandler((request, reply) => {
       if (request.method !== 'GET' || request.url.startsWith('/api/')) {
         return reply.code(404).send({ error: 'NOT_FOUND' })
+      }
+      // Boards are private links: keep them out of search engines, and leave out the preview
+      // image so a shared board link doesn't post a big picture into Slack and co.
+      if (request.url.startsWith('/b/')) {
+        return reply
+          .header('X-Robots-Tag', 'noindex, nofollow')
+          .type('text/html; charset=utf-8')
+          .send(boardHtml)
       }
       return reply.sendFile('index.html')
     })
@@ -55,4 +64,11 @@ export async function buildApp(config: Config, db: Db): Promise<App> {
     await io.close()
   })
   return { app, io }
+}
+
+/** Removes the og:image and twitter:image tags and falls back to the small summary card. */
+export function withoutPreviewImage(html: string): string {
+  return html
+    .replace(/<meta\s[^>]*(?:og:image|twitter:image)[^>]*>\s*/g, '')
+    .replace('content="summary_large_image"', 'content="summary"')
 }

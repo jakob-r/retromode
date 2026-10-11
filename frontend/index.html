@@ -4,18 +4,131 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#FFF8F0" />
-    <meta name="description" content="Retro boards for your team. No login, live for everyone." />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400..700&family=Noto+Sans+Egyptian+Hieroglyphs&family=Noto+Sans+Runic&display=swap"
-      rel="stylesheet"
+    <title>retromo.de – Free, open source retro boards. No login, hosted in Germany</title>
+    <meta
+      name="description"
+      content="Free and open source retrospective boards for agile teams. Create a board, share the link and collaborate live. No login, no account, hosted in Germany (EU)."
     />
-    <title>Retromode</title>
+    <link rel="canonical" href="https://retromo.de/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="author" href="https://github.com/jakob-r/retromode" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="retromo.de" />
+    <meta property="og:url" content="https://retromo.de/" />
+    <meta property="og:title" content="retromo.de – Free, open source retro boards" />
+    <meta
+      property="og:description"
+      content="Create a retro board, share the link, collaborate live. Free, open source, no login, hosted in Germany."
+    />
+    <meta property="og:locale" content="en_US" />
+    <!-- The backend strips the image tags from board pages (/b/*), so shared boards unfurl small. -->
+    <meta property="og:image" content="https://retromo.de/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="retromo.de – free, open source retro boards for your team"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://retromo.de/og.png" />
+    <meta name="twitter:title" content="retromo.de – Free, open source retro boards" />
+    <meta
+      name="twitter:description"
+      content="Create a retro board, share the link, collaborate live. Free, open source, no login, hosted in Germany."
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "@id": "https://retromo.de/#app",
+            "name": "retromo.de",
+            "alternateName": "Retromode",
+            "url": "https://retromo.de/",
+            "description": "Free and open source real-time retrospective board for agile and Scrum teams. No login or account needed, hosted in Germany (EU).",
+            "applicationCategory": "BusinessApplication",
+            "applicationSubCategory": "Retrospective board",
+            "operatingSystem": "Any (web browser)",
+            "browserRequirements": "Requires JavaScript",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+            "license": "https://github.com/jakob-r/retromode/blob/main/LICENSE",
+            "sameAs": ["https://github.com/jakob-r/retromode"],
+            "featureList": [
+              "No login, no account, no sign-up",
+              "Real-time collaboration for everyone with the link",
+              "Anonymous or named items",
+              "Drag and drop to group and merge items",
+              "Dot voting with several votes per person",
+              "Timer for timeboxed retro phases",
+              "Action items",
+              "Hosted in Germany (EU)",
+              "Free and open source, self-hostable with Docker"
+            ]
+          },
+          {
+            "@type": "SoftwareSourceCode",
+            "name": "retromode",
+            "codeRepository": "https://github.com/jakob-r/retromode",
+            "programmingLanguage": "TypeScript",
+            "license": "https://github.com/jakob-r/retromode/blob/main/LICENSE",
+            "targetProduct": { "@id": "https://retromo.de/#app" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is retromo.de free?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. retromo.de is completely free to use and its source code is open source on GitHub (github.com/jakob-r/retromode)."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need an account or login?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. Create a board with one click and share the link. Everyone who opens it can join right away without signing up."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where is retromo.de hosted?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "retromo.de is hosted in Germany, in the European Union."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I host retromo.de myself?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The project is open source and ships as a single Docker image with PostgreSQL. See the README on GitHub for setup instructions."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>retromo.de – free, open source retro boards</h1>
+      <p>
+        Free and open source retrospective boards for teams. Create a board, share the link and
+        collaborate live. No login, no account. Hosted in Germany (EU). Source code:
+        <a href="https://github.com/jakob-r/retromode">github.com/jakob-r/retromode</a>.
+      </p>
+      <p>Please enable JavaScript to use retromo.de.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

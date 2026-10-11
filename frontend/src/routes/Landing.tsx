@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight, Code2, Loader2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { LIMITS, type CreateBoardResponse } from '@retromode/shared'
@@ -12,6 +12,8 @@ const features = [
   { emoji: '🔗', text: 'One link, no login' },
   { emoji: '⚡', text: 'Live for everyone' },
   { emoji: '🥷', text: 'Anonymous if you like' },
+  { emoji: '🇩🇪', text: 'Hosted in Germany' },
+  { emoji: '💛', text: 'Free & open source' },
 ]
 
 export function Landing() {
@@ -48,7 +50,10 @@ export function Landing() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <Logo size="lg" />
+        <h1>
+          <Logo size="lg" />
+          <span className="sr-only"> – free, open source retro boards</span>
+        </h1>
       </motion.div>
       <motion.p
         initial={{ y: 16, opacity: 0 }}
@@ -57,7 +62,7 @@ export function Landing() {
         className="mt-5 max-w-lg text-lg text-balance text-ink-soft sm:text-xl"
       >
         Fast, friendly retro boards for your team. Create one, share the link, and start talking
-        about what matters.
+        about what matters. Free, open source and without login.
       </motion.p>
 
       <motion.form
@@ -134,6 +139,18 @@ export function Landing() {
           </motion.div>
         ))}
       </div>
+
+      <footer className="mt-16 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-ink-soft">
+        <span>Open source under the MIT license, hosted in Germany</span>
+        <span aria-hidden>·</span>
+        <a
+          href="https://github.com/jakob-r/retromode"
+          className="inline-flex items-center gap-1 font-medium text-ink underline decoration-line underline-offset-4 transition hover:decoration-ink"
+        >
+          <Code2 size={14} aria-hidden />
+          Source on GitHub
+        </a>
+      </footer>
     </main>
   )
 }

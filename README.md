@@ -1,10 +1,44 @@
 # retromo.de ✨
 
-Fast, friendly retro boards for teams. Create a board, share the link, and everyone can add items, merge them and vote, live and without logging in.
+**Free, open source retro boards for teams. No login, hosted in Germany.**
+
+👉 **Try it at [retromo.de](https://retromo.de)**
+
+[![Live at retromo.de](https://img.shields.io/badge/live-retromo.de-8B5CF6)](https://retromo.de)
+[![License: MIT](https://img.shields.io/badge/license-MIT-3DDC97)](LICENSE)
+[![Hosted in Germany](https://img.shields.io/badge/hosted%20in-Germany%20🇩🇪-FFD23F)](https://retromo.de)
+[![CI](https://github.com/jakob-r/retromode/actions/workflows/ci.yml/badge.svg)](https://github.com/jakob-r/retromode/actions/workflows/ci.yml)
+
+[retromo.de](https://retromo.de) is a fast, friendly retrospective board for agile, Scrum and remote teams. Create a board, share the link, and everyone can add items, merge them and vote, live and without logging in.
+
+## Why retromo.de?
+
+- 💛 **Free and open source**: no paid plans, no ads, MIT licensed
+- 🔗 **No login**: no account, no sign-up, no email. The link is all you need
+- 🇩🇪 **Hosted in Germany**: runs on servers in the EU
+- ⚡ **Live for everyone**: every change shows up for the whole team right away
+- 🥷 **Anonymous if you like**: post each item with your nickname or anonymously
+- 🧹 **Nothing piles up**: boards without activity are deleted automatically
+- 🐳 **Self-hostable**: one Docker image plus PostgreSQL
+
+## Features
+
+- Three columns: **What went well**, **To improve**, **Action items**
+- Drag and drop to sort and move items, or drop one onto another to merge them into a group
+- Dot voting with several votes per item, and taking your votes back
+- Shared timer for timeboxed phases, optionally hiding everyone else's items until time is up
+- Turn discussion points into linked action items
+- The board owner can lock the board and moderate
+
+## Use it
+
+Just open **[retromo.de](https://retromo.de)**, click _Create retro board_ and share the link with your team. That's it.
+
+## Development
 
 See [CONCEPT.md](CONCEPT.md) for the full product and technical concept.
 
-## Quick start
+### Quick start
 
 Requirements: Node 22+, pnpm 10, Docker (with `docker-compose`), make.
 
@@ -16,7 +50,7 @@ This creates `.env` from `.env.example`, starts Postgres in Docker, installs dep
 
 Want a board with content to play with? Run `make seed-demo` and open the printed link.
 
-## Repository
+### Repository
 
 | Path        | What                                                                 |
 | ----------- | -------------------------------------------------------------------- |
@@ -26,7 +60,7 @@ Want a board with content to play with? Run `make seed-demo` and open the printe
 
 All configuration and credentials live in **one root `.env`** (not checked in). `.env.example` documents every variable.
 
-## Common tasks
+### Common tasks
 
 | Command                          | What it does                                                 |
 | -------------------------------- | ------------------------------------------------------------ |
@@ -53,7 +87,7 @@ make docker-up
 
 ### VPS deployment with Docker Compose
 
-retromo.de runs as its own stack next to an existing [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) with acme-companion (the same setup as eventmat):
+retromo.de runs as its own stack next to an existing [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) with acme-companion:
 
 - `postgres`: PostgreSQL with a named volume, published only on `127.0.0.1`
 - `app`: the production image; joins the proxy's Docker network and advertises `VIRTUAL_HOST`, so nginx-proxy routes the hostname (including WebSockets) and Let's Encrypt issues the cert. Until the first cert exists, the app serves ACME challenges from the companion's webroot volume.
@@ -68,3 +102,11 @@ Leave the proxy's Compose file alone and don't edit nginx by hand. DNS for `VIRT
    ```
 
 3. Check: `docker compose --profile app ps` and `docker compose --profile app logs -f app`. Migrations run on container start, so redeploying is `git pull` plus step 2.
+
+## Contributing
+
+Issues and pull requests are welcome. Run `make lint` and `make test` before opening a PR.
+
+## License
+
+[MIT](LICENSE). Made with ✨ for better retros. Use it for free at [retromo.de](https://retromo.de).

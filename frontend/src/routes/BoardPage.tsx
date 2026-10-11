@@ -62,9 +62,9 @@ export function BoardPage() {
   }, [status === 'ready', justCreated]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (board) document.title = `${board.title} · Retromode`
+    if (board) document.title = `${board.title} · retromo.de`
     return () => {
-      document.title = 'Retromode'
+      document.title = 'retromo.de'
     }
   }, [board?.title]) // eslint-disable-line react-hooks/exhaustive-deps
 
