@@ -1,0 +1,74 @@
+import type {
+  BoardPatch,
+  BoardSnapshot,
+  PublicBoard,
+  PublicGroup,
+  PublicItem,
+} from '@retromode/shared'
+import type { BoardRow, GroupRow, ItemRow } from '../db/schema'
+import type { BoardState } from './boards'
+import type { Changes } from './changes'
+
+/**
+ * Who receives a payload. Public payloads never contain client ids; ownership
+ * and own votes are only ever expressed as per-recipient booleans.
+ */
+export interface Viewer {
+  clientId: string
+  isOwner: boolean
+}
+
+export function toPublicBoard(board: BoardRow, viewer: Viewer): PublicBoard {
+  return {
+    slug: board.slug,
+    title: board.title,
+    voteLimit: board.voteLimit,
+    locked: board.lockedAt !== null,
+    isOwner: viewer.isOwner,
+    createdAt: board.createdAt.toISOString(),
+  }
+}
+
+export function toPublicGroup(group: GroupRow): PublicGroup {
+  return { id: group.id, column: group.column, position: group.position, title: group.title }
+}
+
+export function toPublicItem(
+  item: ItemRow,
+  voters: ReadonlySet<string> | undefined,
+  viewer: Viewer,
+): PublicItem {
+  return {
+    id: item.id,
+    column: item.column,
+    groupId: item.groupId,
+    position: item.position,
+    text: item.text,
+    nickname: item.authorNickname,
+    mine: item.authorClientId === viewer.clientId,
+    votes: voters?.size ?? 0,
+    votedByMe: voters?.has(viewer.clientId) ?? false,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  }
+}
+
+export function snapshotFor(state: BoardState, viewer: Viewer, online: number): BoardSnapshot {
+  return {
+    board: toPublicBoard(state.board, viewer),
+    groups: state.groups.map(toPublicGroup),
+    items: state.items.map((i) => toPublicItem(i, state.voters.get(i.id), viewer)),
+    online,
+  }
+}
+
+export function patchFor(state: BoardState, changes: Changes, viewer: Viewer): BoardPatch {
+  const patch: BoardPatch = {}
+  if (changes.board) patch.board = toPublicBoard(state.board, viewer)
+  if (state.items.length)
+    patch.items = state.items.map((i) => toPublicItem(i, state.voters.get(i.id), viewer))
+  if (state.groups.length) patch.groups = state.groups.map(toPublicGroup)
+  if (changes.deletedItemIds.size) patch.deletedItemIds = [...changes.deletedItemIds]
+  if (changes.deletedGroupIds.size) patch.deletedGroupIds = [...changes.deletedGroupIds]
+  return patch
+}

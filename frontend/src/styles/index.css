@@ -1,0 +1,157 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-cream: #fff8f0;
+  --color-paper: #fffdf9;
+  --color-ink: #2b2140;
+  --color-ink-soft: #6b6280;
+  --color-line: #ece3d6;
+  --color-mint: #3ddc97;
+  --color-mint-tint: #e3faef;
+  --color-mint-deep: #11784f;
+  --color-coral: #ff6b6b;
+  --color-coral-tint: #ffeaea;
+  --color-coral-deep: #b53636;
+  --color-violet: #8b5cf6;
+  --color-violet-tint: #f0eaff;
+  --color-violet-deep: #5a2fc4;
+  --color-sunny: #ffd23f;
+  --color-sunny-tint: #fff4cc;
+
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --animate-twinkle: twinkle 2.8s ease-in-out infinite;
+  --animate-drift-a: drift-a 26s ease-in-out infinite;
+  --animate-drift-b: drift-b 32s ease-in-out infinite;
+  --animate-drift-c: drift-c 38s ease-in-out infinite;
+  --animate-wobble: wobble 0.5s ease-in-out;
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      transform: scale(0.6) rotate(0deg);
+      opacity: 0.25;
+    }
+    50% {
+      transform: scale(1.1) rotate(25deg);
+      opacity: 1;
+    }
+  }
+  @keyframes drift-a {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(8vw, 6vh) scale(1.15);
+    }
+  }
+  @keyframes drift-b {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1.1);
+    }
+    50% {
+      transform: translate(-10vw, -4vh) scale(0.9);
+    }
+  }
+  @keyframes drift-c {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(0.95);
+    }
+    50% {
+      transform: translate(5vw, -8vh) scale(1.1);
+    }
+  }
+  @keyframes wobble {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-6px) rotate(-1deg);
+    }
+    40% {
+      transform: translateX(5px) rotate(1deg);
+    }
+    60% {
+      transform: translateX(-3px);
+    }
+    80% {
+      transform: translateX(2px);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-cream font-sans text-ink antialiased;
+    min-height: 100dvh;
+  }
+  /* Faint film grain for a bit of retro texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.07;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection {
+    background: var(--color-sunny);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-violet);
+    outline-offset: 2px;
+  }
+}
+
+/* Column accent: set --accent / --accent-tint / --accent-deep per column */
+.accent-ring {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 10px 30px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* New items from other people glow briefly */
+@keyframes remote-glow {
+  0% {
+    box-shadow:
+      0 0 0 3px var(--color-sunny),
+      0 0 24px 4px color-mix(in srgb, var(--color-sunny) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 2px 0 rgba(43, 33, 64, 0.06);
+  }
+}
+.remote-glow {
+  animation: remote-glow 1.8s ease-out 1;
+}
+
+/* A locked board is a little muted */
+.board-locked section {
+  filter: saturate(0.75);
+}
+
+/* Lift the entry whose menu is open above its siblings */
+.entry:has([aria-expanded='true']) {
+  position: relative;
+  z-index: 40;
+}

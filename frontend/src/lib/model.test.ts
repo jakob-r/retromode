@@ -1,0 +1,81 @@
+import { describe, expect, it } from 'vitest'
+import { positionsBetween, type PublicItem } from '@retromode/shared'
+import * as model from './model'
+
+let n = 0
+let lastPosition: string | null = null
+function item(fields: Partial<PublicItem> = {}): PublicItem {
+  n += 1
+  lastPosition = positionsBetween(lastPosition, null, 1)[0]!
+  return {
+    id: `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+    column: 'well',
+    groupId: null,
+    position: lastPosition,
+    text: `item ${n}`,
+    nickname: null,
+    mine: false,
+    votes: 0,
+    votedByMe: false,
+    createdAt: '',
+    updatedAt: '',
+    ...fields,
+  }
+}
+
+describe('board model', () => {
+  it('merges, sums votes, and dissolves single-item groups', () => {
+    const a = item({ votes: 2 })
+    const b = item({ votes: 3 })
+    const c = item()
+    let data = model.fromLists([], [a, b, c])
+    data = model.merge(data, {
+      source: { type: 'item', id: b.id },
+      target: { type: 'item', id: a.id },
+      newGroupId: 'g1',
+    })
+    const entries = model.columnEntries(data, 'well')
+    expect(entries.map((e) => e.type)).toEqual(['group', 'item'])
+    const group = entries[0]!
+    expect(group.type === 'group' && group.votes).toBe(5)
+    expect(group.type === 'group' && group.items.map((i) => i.id)).toEqual([a.id, b.id])
+
+    data = model.moveItem(data, { itemId: b.id, column: 'improve', groupId: null, afterId: null })
+    expect(Object.keys(data.groups)).toHaveLength(0)
+    expect(data.items[a.id]!.groupId).toBeNull()
+    expect(model.columnEntries(data, 'well').map((e) => e.id)).toEqual([a.id, c.id])
+  })
+
+  it('counts used votes per column and toggles votes', () => {
+    const a = item({ votedByMe: true, votes: 1 })
+    const b = item({ column: 'improve' })
+    let data = model.fromLists([], [a, b])
+    expect(model.votesUsed(data, 'well')).toBe(1)
+    expect(model.votesUsed(data, 'improve')).toBe(0)
+    data = model.toggleVote(data, b.id)
+    expect(data.items[b.id]).toMatchObject({ votes: 1, votedByMe: true })
+    expect(model.votesUsed(data, 'improve')).toBe(1)
+  })
+
+  it('ungroups in place and applies server patches', () => {
+    const [a, b, c] = [item(), item(), item()]
+    let data = model.fromLists([], [a, b, c])
+    data = model.merge(data, {
+      source: { type: 'item', id: c.id },
+      target: { type: 'item', id: a.id },
+      newGroupId: 'g',
+    })
+    data = model.ungroup(data, 'g')
+    expect(model.columnEntries(data, 'well').map((e) => e.id)).toEqual([a.id, c.id, b.id])
+    data = model.applyPatch(data, { deletedItemIds: [a.id], items: [{ ...b, text: 'new' }] })
+    expect(data.items[a.id]).toBeUndefined()
+    expect(data.items[b.id]!.text).toBe('new')
+  })
+
+  it('finds the predecessor of an entry', () => {
+    const [a, b] = [item(), item()]
+    const data = model.fromLists([], [a, b])
+    expect(model.predecessorId(data, { type: 'item', id: a.id })).toBeNull()
+    expect(model.predecessorId(data, { type: 'item', id: b.id })).toBe(a.id)
+  })
+})

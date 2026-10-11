@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-retromode}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-retromode}
+      POSTGRES_DB: ${POSTGRES_DB:-retromode}
+    # Host port for local dev (`make postgres`); bound to localhost so it stays off the public net.
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-retromode} -d ${POSTGRES_DB:-retromode}']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-retromode}:${POSTGRES_PASSWORD:-retromode}@postgres:5432/${POSTGRES_DB:-retromode}
+    ports:
+      - '${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles: ['app']
+
+volumes:
+  postgres-data:
