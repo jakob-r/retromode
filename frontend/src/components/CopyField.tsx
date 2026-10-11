@@ -1,21 +1,12 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
+import { copyText } from '../lib/clipboard'
 
 export function CopyField({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-    } catch {
-      // Clipboard API needs a secure context; fall back to selecting the text
-      const input = document.createElement('textarea')
-      input.value = value
-      document.body.append(input)
-      input.select()
-      document.execCommand('copy')
-      input.remove()
-    }
+    await copyText(value)
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
   }

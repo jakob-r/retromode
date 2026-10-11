@@ -112,4 +112,35 @@ describe('board model', () => {
     expect(data.items[action.id]!.link).toBeNull()
     expect(model.links(data)).toEqual([])
   })
+
+  it('formats action items for Slack', () => {
+    const improve = item({ column: 'improve', text: 'Deploys keep failing' })
+    const a = item({
+      column: 'actions',
+      text: 'Fix the pipeline',
+      nickname: 'Sam',
+      link: { type: 'item', id: improve.id },
+    })
+    const b = item({ column: 'actions', text: 'Pair more' })
+    const c = item({ column: 'actions', text: 'Write docs\nfor onboarding' })
+    let data = model.fromLists([], [improve, a, b, c])
+    expect(model.actionItemsForSlack(model.fromLists([], [improve]), 'Retro')).toBeNull()
+    data = model.merge(data, {
+      source: { type: 'item', id: c.id },
+      target: { type: 'item', id: b.id },
+      newGroupId: 'g1',
+    })
+    data = model.patchGroup(data, 'g1', { title: 'Team' })
+    expect(model.actionItemsForSlack(data, 'Sprint 42')).toBe(
+      [
+        '*🚀 Action items · Sprint 42*',
+        '• Fix the pipeline _(Sam)_',
+        '      ↳ _Deploys keep failing_',
+        '• *Team*',
+        '      ◦ Pair more',
+        '      ◦ Write docs',
+        '         for onboarding',
+      ].join('\n'),
+    )
+  })
 })

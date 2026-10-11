@@ -2,10 +2,11 @@ import { useDroppable } from '@dnd-kit/core'
 import { AnimatePresence, motion } from 'motion/react'
 import type { ColumnKey, PublicBoard } from '@retromode/shared'
 import { accentVars, COLUMN_META } from '../lib/columns'
-import type { Entry } from '../lib/model'
+import { LINK_SOURCE, type Entry } from '../lib/model'
 import { spring } from '../lib/motion'
 import { useDropMode } from '../store/drag'
 import { AddItemForm } from './AddItemForm'
+import { CopyActionsButton } from './CopyActionsButton'
 import { DropIndicator } from './DropIndicator'
 import { GroupCard } from './GroupCard'
 import { ItemCard } from './ItemCard'
@@ -50,6 +51,9 @@ export function Column({ column, board, entries, count, used, className = '' }: 
           </span>
         </h2>
         {!board.locked && <VoteBudget used={used} limit={board.voteLimit} />}
+        {column === LINK_SOURCE && (
+          <CopyActionsButton className="bg-white/70 text-[var(--accent-deep)] hover:bg-white" />
+        )}
       </header>
 
       {!board.locked && <AddItemForm column={column} />}

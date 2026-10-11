@@ -352,3 +352,36 @@ export function predecessorId(data: BoardData, ref: EntryRef): string | null | u
   if (index === -1) return undefined
   return container[index - 1]?.id ?? null
 }
+
+// ---------------------------------------------------------------------------
+// Export
+
+/**
+ * The action items as a Slack message (mrkdwn): one bullet per item, groups
+ * as a bold bullet with their items nested, and what each one addresses.
+ * Returns null when there are none.
+ */
+export function actionItemsForSlack(data: BoardData, title: string): string | null {
+  const indent = (text: string, by: string) => text.trim().split('\n').join(`\n${by}`)
+  const linkTargets = new Map(links(data).map((l) => [l.itemId, l.target]))
+  const line = (item: PublicItem, bullet: string, pad: string) => {
+    const author = item.nickname ? ` _(${item.nickname})_` : ''
+    const lines = [`${pad}${bullet} ${indent(item.text, `${pad}   `)}${author}`]
+    const target = linkTargets.get(item.id)
+    const addresses = target && entryLabel(data, target)
+    if (addresses) lines.push(`${pad}      ↳ _${addresses.trim().split('\n')[0]}_`)
+    return lines
+  }
+
+  const lines: string[] = []
+  for (const entry of columnEntries(data, LINK_SOURCE)) {
+    if (entry.type === 'item') {
+      lines.push(...line(entry.item, '•', ''))
+    } else {
+      lines.push(`• *${entry.group.title || 'Group'}*`)
+      for (const item of entry.items) lines.push(...line(item, '◦', '      '))
+    }
+  }
+  if (lines.length === 0) return null
+  return [`*🚀 Action items · ${title}*`, ...lines].join('\n')
+}
