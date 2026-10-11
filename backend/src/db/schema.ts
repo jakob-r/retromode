@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  boolean,
   index,
   type AnyPgColumn,
   integer,
@@ -34,6 +35,7 @@ export const boards = pgTable(
     /** The shared countdown: running while timerEndsAt is in the future */
     timerEndsAt: timestamp('timer_ends_at', { withTimezone: true }),
     timerSeconds: integer('timer_seconds'),
+    timerHideItems: boolean('timer_hide_items').notNull().default(false),
     ...timestamps,
     lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).notNull().defaultNow(),
   },

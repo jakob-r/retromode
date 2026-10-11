@@ -34,7 +34,9 @@ export function toPublicBoard(board: BoardRow, viewer: Viewer): PublicBoard {
 function toPublicTimer(board: BoardRow, now = Date.now()): PublicTimer | null {
   if (!board.timerEndsAt || board.timerSeconds === null) return null
   const remainingMs = board.timerEndsAt.getTime() - now
-  return remainingMs > 0 ? { seconds: board.timerSeconds, remainingMs } : null
+  return remainingMs > 0
+    ? { seconds: board.timerSeconds, remainingMs, hideItems: board.timerHideItems }
+    : null
 }
 
 export function toPublicGroup(group: GroupRow): PublicGroup {

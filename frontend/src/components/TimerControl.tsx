@@ -30,6 +30,8 @@ export function TimerControl() {
   const remaining = useRemaining()
   const running = remaining !== null
   const lastSeconds = useBoard((s) => s.board?.timer?.seconds)
+  const hidingNow = useBoard((s) => !!s.board?.timer?.hideItems)
+  const [hideItems, setHideItems] = useState(false)
   const [open, setOpen] = useState(false)
   const [minutes, setMinutes] = useState(LIMITS.defaultTimerSeconds / 60)
   const ref = useRef<HTMLDivElement>(null)
@@ -37,6 +39,10 @@ export function TimerControl() {
   useEffect(() => {
     if (lastSeconds) setMinutes(Math.round(lastSeconds / 60) || 1)
   }, [lastSeconds])
+
+  useEffect(() => {
+    if (running) setHideItems(hidingNow)
+  }, [running, hidingNow])
 
   useEffect(() => {
     if (!open) return
@@ -51,7 +57,7 @@ export function TimerControl() {
   }, [open])
 
   const start = () => {
-    actions.setTimer(minutes * 60)
+    actions.setTimer(minutes * 60, hideItems)
     setOpen(false)
   }
   const stop = () => {
@@ -105,6 +111,11 @@ export function TimerControl() {
                 <p className="mb-4 text-center font-display text-4xl font-bold tabular-nums">
                   {format(remaining)}
                 </p>
+                {hidingNow && (
+                  <p className="-mt-2 mb-4 text-center text-xs text-ink-soft">
+                    🙈 Items stay hidden until time's up
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -147,6 +158,21 @@ export function TimerControl() {
                     <Plus size={16} />
                   </button>
                 </div>
+                <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white p-3 transition hover:bg-cream">
+                  <input
+                    type="checkbox"
+                    checked={hideItems}
+                    onChange={(e) => setHideItems(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-violet"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold">🙈 Hide items</span>
+                    <span className="block text-xs text-ink-soft">
+                      Everyone sees only their own text until time's up – the rest turns into
+                      hieroglyphs.
+                    </span>
+                  </span>
+                </label>
                 <button
                   type="button"
                   onClick={start}

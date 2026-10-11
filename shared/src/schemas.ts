@@ -87,6 +87,8 @@ export const boardSettingsSchema = z.object({
 /** Starts (or restarts) the shared countdown; seconds null stops it. Anyone may do this. */
 export const boardTimerSchema = z.object({
   seconds: z.number().int().min(LIMITS.timerMinSeconds).max(LIMITS.timerMaxSeconds).nullable(),
+  /** While it runs, everyone sees only their own items' text */
+  hideItems: z.boolean().optional(),
 })
 
 export type CreateBoardInput = z.infer<typeof createBoardSchema>

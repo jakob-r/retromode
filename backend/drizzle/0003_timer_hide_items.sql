@@ -1,0 +1,1 @@
+ALTER TABLE "boards" ADD COLUMN "timer_hide_items" boolean DEFAULT false NOT NULL;

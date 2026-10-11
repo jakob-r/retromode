@@ -286,13 +286,13 @@ export const actions = {
   },
 
   /** Starts the shared timer for everyone (null stops it). */
-  setTimer(seconds: number | null) {
+  setTimer(seconds: number | null, hideItems = false) {
     const board = get().board
     if (board && socket?.connected) {
-      const timer = seconds === null ? null : { seconds, remainingMs: seconds * 1000 }
+      const timer = seconds === null ? null : { seconds, remainingMs: seconds * 1000, hideItems }
       set({ board: { ...board, timer } })
       syncTimer({ ...board, timer })
     }
-    mutate('board:timer', { seconds })
+    mutate('board:timer', { seconds, hideItems })
   },
 }

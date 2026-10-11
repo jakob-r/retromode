@@ -1,6 +1,7 @@
 import { Layers } from 'lucide-react'
 import type { EntryRef } from '@retromode/shared'
 import type { Entry } from '../lib/model'
+import { Obscured, useItemsHidden } from './Obscured'
 
 /** A list of column entries to pick one from (merge and tie dialogs). */
 export function EntryPicker({
@@ -14,6 +15,7 @@ export function EntryPicker({
   selected?: EntryRef | null
   onPick: (ref: EntryRef) => void
 }) {
+  const hidden = useItemsHidden()
   return (
     <div className="-mx-2 max-h-[60vh] overflow-y-auto px-2">
       {entries.length === 0 && <p className="py-6 text-center text-sm text-ink-soft">{empty}</p>}
@@ -27,11 +29,23 @@ export function EntryPicker({
               className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-left text-sm transition hover:border-[var(--accent)] hover:bg-[var(--accent-tint)] aria-[current]:border-[var(--accent)] aria-[current]:bg-[var(--accent-tint)]"
             >
               {entry.type === 'item' ? (
-                <span className="line-clamp-2">{entry.item.text}</span>
+                <span className="line-clamp-2">
+                  {hidden && !entry.item.mine ? (
+                    <Obscured text={entry.item.text} seed={entry.item.id} />
+                  ) : (
+                    entry.item.text
+                  )}
+                </span>
               ) : (
                 <span className="flex items-center gap-2 font-semibold text-[var(--accent-deep)]">
                   <Layers size={14} />
-                  {entry.group.title || entry.items[0]?.text || 'Group'}
+                  {entry.group.title ||
+                    (entry.items[0] && hidden && !entry.items[0].mine ? (
+                      <Obscured text={entry.items[0].text} seed={entry.items[0].id} />
+                    ) : (
+                      entry.items[0]?.text
+                    )) ||
+                    'Group'}
                   <span className="font-normal text-ink-soft">· {entry.items.length} items</span>
                 </span>
               )}

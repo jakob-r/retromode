@@ -578,6 +578,7 @@ export function setTimer(db: Db, actor: Actor, input: BoardTimerInput): Promise<
         .set({
           timerEndsAt: input.seconds === null ? null : new Date(Date.now() + input.seconds * 1000),
           timerSeconds: input.seconds,
+          timerHideItems: input.seconds !== null && (input.hideItems ?? false),
         })
         .where(eq(boards.id, board.id))
       changes.board = true

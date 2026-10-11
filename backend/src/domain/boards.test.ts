@@ -343,9 +343,10 @@ describe('timer', () => {
     const viewer = { clientId: a.clientId, isOwner: false }
     await boards.updateSettings(db, ownerActor, { locked: true })
 
-    await boards.setTimer(db, a, { seconds: 300 })
+    await boards.setTimer(db, a, { seconds: 300, hideItems: true })
     const timer = snapshotFor(await state(), viewer, 1).board.timer
     expect(timer?.seconds).toBe(300)
+    expect(timer?.hideItems).toBe(true)
     expect(timer?.remainingMs).toBeGreaterThan(299_000)
     expect(timer?.remainingMs).toBeLessThanOrEqual(300_000)
 

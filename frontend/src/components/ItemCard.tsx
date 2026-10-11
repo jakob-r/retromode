@@ -14,6 +14,7 @@ import { AnonymityToggle } from './AnonymityToggle'
 import { DropIndicator } from './DropIndicator'
 import { EmojiBurst } from './EmojiBurst'
 import { Menu, type MenuEntry } from './Menu'
+import { Obscured, useItemsHidden } from './Obscured'
 import { stringAnchor } from './Strings'
 import { TieBadge } from './TieBadge'
 import { VoteButton } from './VoteButton'
@@ -33,6 +34,7 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
   const remote = useBoard((s) => !!s.remoteArrivals[item.id])
   const fresh = useBoard((s) => !!s.freshItems[item.id])
   const dropMode = useDropMode(`item:${item.id}`)
+  const hidden = useItemsHidden() && !item.mine
   const tiedTo = useBoard((s) =>
     item.link ? model.entryLabel({ items: s.items, groups: s.groups }, item.link) : null,
   )
@@ -141,14 +143,14 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
         />
         <div className="flex items-start gap-2">
           <p className="min-w-0 flex-1 py-0.5 text-[15px] leading-snug break-words whitespace-pre-wrap">
-            {item.text}
+            {hidden ? <Obscured text={item.text} seed={item.id} /> : item.text}
           </p>
           {!overlay && <Menu entries={menu} label="Item actions" />}
         </div>
         {/* On mobile only one column shows at a time, so strings can't be drawn */}
         {tiedTo && (
           <p className="mt-1.5 truncate text-xs font-medium text-coral-deep md:hidden">
-            🧶 {tiedTo}
+            🧶 {hidden ? <Obscured text={tiedTo} seed={`${item.id}:tie`} /> : tiedTo}
           </p>
         )}
         <div className="mt-2 flex items-center justify-between gap-2">

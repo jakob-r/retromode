@@ -19,6 +19,8 @@ export interface PublicTimer {
   seconds: number
   /** Left at the moment the server sent this (relative, so client clocks don't matter) */
   remainingMs: number
+  /** Everyone sees only their own items' text until it runs out */
+  hideItems: boolean
 }
 
 export interface PublicGroup {

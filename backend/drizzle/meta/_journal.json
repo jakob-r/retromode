@@ -22,6 +22,13 @@
       "when": 1791739999326,
       "tag": "0002_board_timer",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791740310178,
+      "tag": "0003_timer_hide_items",
+      "breakpoints": true
     }
   ]
 }

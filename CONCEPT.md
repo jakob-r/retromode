@@ -102,6 +102,7 @@ A small, real-time retrospective board. You open the site, create a board, share
 - It **locks nothing** – it also runs on a locked board. While it runs, the backdrop fades darker for focus time and the header shows the countdown.
 - When it runs out, every card gives a little shake and a burst of ⏰⌛🔔 bursts out of the middle of the screen (skipped under reduced motion).
 - The server stores the end time; clients get the time *remaining* when they receive it, so their own clocks don't matter.
+- Optional **🙈 Hide items** mode: while the timer runs, items can still be added, but everyone only sees the text of their own items. Everyone else's text is scrambled character by character – each one randomly becomes a hieroglyph, a dingbat, a rune, braille or a blacked-out bar (stable per item, spaces kept). It all reveals when time's up or the timer is stopped. This is a fun focus aid, not secrecy: the text is still sent to clients.
 
 ### 2.8 Real-time sync
 - Every change (create/edit/delete/move/merge/ungroup/vote/settings) shows up for all participants immediately (target < 200 ms on a normal connection).
@@ -252,6 +253,7 @@ Board
   lockedAt        timestamp null        -- not null = board is locked
   timerEndsAt     timestamp null        -- shared countdown, running while in the future
   timerSeconds    int null              -- what the timer was started with
+  timerHideItems  bool default false    -- others' item text is scrambled while it runs
   createdAt       timestamp
   lastActivityAt  timestamp
 
@@ -323,7 +325,7 @@ Connect with `auth: { clientId }`, then join a board room. The typed event maps 
 | `group:move`       | `{ groupId, column, afterId \| null }` |
 | `vote:toggle`      | `{ itemId }` |
 | `board:settings`   | `{ voteLimit?, title?, locked? }` (owner only) |
-| `board:timer`      | `{ seconds \| null }`: start/restart the shared timer, or stop it (anyone, also when locked) |
+| `board:timer`      | `{ seconds \| null, hideItems? }`: start/restart the shared timer, or stop it (anyone, also when locked) |
 
 Moves send **`afterId`** (the entry to place after, `null` = first) rather than a position. The server computes the fractional-index key while it holds the board lock, so concurrent moves can't produce colliding keys.
 
