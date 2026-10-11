@@ -23,6 +23,8 @@ interface BoardStore extends model.BoardData {
   online: number
   /** Items that arrived from other people since load, for a short glow */
   remoteArrivals: Record<string, true>
+  /** Items created moments ago (by anyone), for the emoji burst */
+  freshItems: Record<string, true>
 }
 
 const initial = (): BoardStore => ({
@@ -31,6 +33,7 @@ const initial = (): BoardStore => ({
   board: null,
   online: 0,
   remoteArrivals: {},
+  freshItems: {},
   ...model.emptyData(),
 })
 
@@ -41,6 +44,20 @@ const get = useBoard.getState
 const data = (): model.BoardData => ({ items: get().items, groups: get().groups })
 
 let socket: RetroSocket | null = null
+
+const FRESH_MS = 1500
+
+function markFresh(ids: string[]) {
+  if (ids.length === 0) return
+  const fresh = { ...get().freshItems }
+  for (const id of ids) fresh[id] = true
+  set({ freshItems: fresh })
+  setTimeout(() => {
+    const rest = { ...get().freshItems }
+    for (const id of ids) delete rest[id]
+    set({ freshItems: rest })
+  }, FRESH_MS)
+}
 
 function applySnapshot(snapshot: BoardSnapshot) {
   set({
@@ -76,14 +93,18 @@ export function connectBoard(slug: string): () => void {
   s.on('board:patch', (patch) => {
     const before = get().items
     const arrivals = { ...get().remoteArrivals }
+    const created: string[] = []
     for (const item of patch.items ?? []) {
-      if (!before[item.id] && !item.mine) arrivals[item.id] = true
+      if (before[item.id]) continue
+      created.push(item.id)
+      if (!item.mine) arrivals[item.id] = true
     }
     set({
       ...model.applyPatch(data(), patch),
       ...(patch.board && { board: patch.board }),
       remoteArrivals: arrivals,
     })
+    markFresh(created)
   })
 
   return () => {
@@ -151,6 +172,7 @@ export const actions = {
           updatedAt: now,
         }),
     )
+    markFresh([id])
   },
 
   updateItem(itemId: string, text: string, anonymous: boolean, nickname: string | null) {

@@ -11,6 +11,7 @@ import { useMe } from '../store/me'
 import { useUi } from '../store/ui'
 import { AnonymityToggle } from './AnonymityToggle'
 import { DropIndicator } from './DropIndicator'
+import { EmojiBurst } from './EmojiBurst'
 import { Menu, type MenuEntry } from './Menu'
 import { VoteButton } from './VoteButton'
 
@@ -27,6 +28,7 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
   const [editing, setEditing] = useState(false)
   const activeGroup = useDrag((s) => (s.active?.type === 'group' ? s.active.id : null))
   const remote = useBoard((s) => !!s.remoteArrivals[item.id])
+  const fresh = useBoard((s) => !!s.freshItems[item.id])
   const dropMode = useDropMode(`item:${item.id}`)
 
   const drag = useDraggable({
@@ -80,6 +82,7 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
   return (
     <div className="entry relative">
       <DropIndicator mode={dropMode} />
+      {fresh && !overlay && <EmojiBurst itemId={item.id} column={item.column} />}
       <motion.div
         ref={(node) => {
           drag.setNodeRef(node)

@@ -1,0 +1,67 @@
+import { motion } from 'motion/react'
+import { useMemo } from 'react'
+import type { ColumnKey } from '@retromode/shared'
+import { prefersReducedMotion } from '../lib/motion'
+
+const EMOJIS: Partial<Record<ColumnKey, string[]>> = {
+  well: ['🎉', '🥳', '🌟', '💖', '🙌', '🔥', '👏', '😍', '💯', '🦄', '🍾', '🌈'],
+  improve: ['😩', '💩', '😤', '🌧️', '👎', '😬', '🙈', '💔', '🐌', '🤦', '🥲', '⛈️'],
+}
+
+const COUNT = 10
+
+/** Deterministic hash, so every client picks the same emoji for an item. */
+function hash(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
+  return h >>> 0
+}
+
+/** A fountain of one emoji over a freshly created item (positive or negative column). */
+export function EmojiBurst({ itemId, column }: { itemId: string; column: ColumnKey }) {
+  const set = EMOJIS[column]
+  const h = hash(itemId)
+  const emoji = set?.[h % set.length]
+
+  const particles = useMemo(() => {
+    let seed = h || 1
+    const rand = () => ((seed = Math.imul(seed ^ (seed >>> 15), 2246822507) >>> 0) % 1000) / 1000
+    return Array.from({ length: COUNT }, (_, i) => {
+      const angle =
+        (-90 + (i - (COUNT - 1) / 2) * (160 / COUNT) + (rand() - 0.5) * 12) * (Math.PI / 180)
+      const distance = 50 + rand() * 50
+      return {
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance,
+        size: 16 + rand() * 12,
+        rotate: (rand() - 0.5) * 120,
+        delay: rand() * 0.15,
+      }
+    })
+  }, [h])
+
+  if (!emoji || prefersReducedMotion()) return null
+
+  return (
+    <span className="pointer-events-none absolute inset-0 z-30 overflow-visible" aria-hidden>
+      {particles.map((p, i) => (
+        <motion.span
+          key={i}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 leading-none select-none"
+          style={{ fontSize: p.size }}
+          initial={{ x: 0, y: 0, scale: 0, opacity: 1, rotate: 0 }}
+          animate={{
+            x: p.x,
+            y: [0, p.y, p.y + 30],
+            scale: [0, 1.2, 0.9],
+            opacity: [1, 1, 0],
+            rotate: p.rotate,
+          }}
+          transition={{ duration: 1.1, delay: p.delay, ease: 'easeOut', times: [0, 0.55, 1] }}
+        >
+          {emoji}
+        </motion.span>
+      ))}
+    </span>
+  )
+}
