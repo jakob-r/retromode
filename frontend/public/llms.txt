@@ -1,13 +1,13 @@
 # retromo.de
 
-> retromo.de is a free and open source online retrospective board for agile, Scrum and remote teams. Create a board with one click, share the link, and everyone can add items, group them, vote and collect action items live. No login or account is needed. It is hosted in Germany (EU).
+> retromo.de is a free and open source online retrospective board for agile, Scrum and remote teams. Create a board with one click, share the link, and everyone can add items, group them, vote and collect action items live. No login or account is needed. It is hosted in Europe (Germany).
 
 ## Key facts
 
 - Price: free, no paid plans, no ads
 - Open source: https://github.com/jakob-r/retromode (MIT license)
 - No login: no account, no sign-up, no email. Joining a board only needs the link
-- Hosting: Germany, European Union
+- Hosting: European Union (Germany)
 - Real time: every change shows up for everyone right away
 - Privacy: items can be posted anonymously or with a nickname; inactive boards are deleted automatically
 - Self-hosting: one Docker image plus PostgreSQL

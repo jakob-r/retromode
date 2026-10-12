@@ -1,12 +1,12 @@
 # retromo.de ✨
 
-**Free, open source retro boards for teams. No login, hosted in Germany.**
+**Free, open source retro boards for teams. No login, hosted in Europe (Germany).**
 
 👉 **Try it at [retromo.de](https://retromo.de)**
 
 [![Live at retromo.de](https://img.shields.io/badge/live-retromo.de-8B5CF6)](https://retromo.de)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3DDC97)](LICENSE)
-[![Hosted in Germany](https://img.shields.io/badge/hosted%20in-Germany%20🇩🇪-FFD23F)](https://retromo.de)
+[![Hosted in Europe (Germany)](https://img.shields.io/badge/hosted%20in-Europe%20%28Germany%29%20🇪🇺-FFD23F)](https://retromo.de)
 [![CI](https://github.com/jakob-r/retromode/actions/workflows/ci.yml/badge.svg)](https://github.com/jakob-r/retromode/actions/workflows/ci.yml)
 
 [retromo.de](https://retromo.de) is a fast, friendly retrospective board for agile, Scrum and remote teams. Create a board, share the link, and everyone can add items, merge them and vote, live and without logging in.
@@ -15,7 +15,7 @@
 
 - 💛 **Free and open source**: no paid plans, no ads, MIT licensed
 - 🔗 **No login**: no account, no sign-up, no email. The link is all you need
-- 🇩🇪 **Hosted in Germany**: runs on servers in the EU
+- 🇪🇺 **Hosted in Europe**: runs on servers in Germany (EU)
 - ⚡ **Live for everyone**: every change shows up for the whole team right away
 - 🥷 **Anonymous if you like**: post each item with your nickname or anonymously
 - 🧹 **Nothing piles up**: boards without activity are deleted automatically

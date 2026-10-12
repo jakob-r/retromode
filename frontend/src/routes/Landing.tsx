@@ -13,7 +13,7 @@ const features = [
   { emoji: '🔗', text: 'One link, no login' },
   { emoji: '⚡', text: 'Live for everyone' },
   { emoji: '🥷', text: 'Anonymous if you like' },
-  { emoji: '🇩🇪', text: 'Hosted in Germany' },
+  { emoji: '🇪🇺', text: 'Hosted in Europe (Germany)' },
   { emoji: '💛', text: 'Free & open source' },
 ]
 
@@ -146,7 +146,7 @@ export function Landing() {
       </div>
 
       <footer className="mt-16 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-ink-soft">
-        <span>Open source under the MIT license, hosted in Germany</span>
+        <span>Open source under the MIT license, hosted in Europe (Germany)</span>
         <span aria-hidden>·</span>
         <a
           href="https://github.com/jakob-r/retromode"
