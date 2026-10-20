@@ -44,6 +44,18 @@ export function ShareDialog({
         Anyone with this link can join – no login needed.
       </p>
       <CopyField value={boardUrl(slug)} label="Board link" />
+      <p className="mt-2 px-1 text-xs text-ink-soft">
+        🤖 Agents can join too: open the link in a browser with a{' '}
+        <a
+          href="https://webmachinelearning.github.io/webmcp/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-ink"
+        >
+          WebMCP
+        </a>{' '}
+        agent, and it can read the board, add items, group them and draft action items for you.
+      </p>
       {admin && (
         <div className="mt-5 rounded-2xl bg-sunny-tint p-4">
           <p className="mb-1 text-sm font-semibold">🔑 Save your admin link</p>

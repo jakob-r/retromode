@@ -29,6 +29,8 @@
 - Shared timer for timeboxed phases, optionally hiding everyone else's items until time is up
 - Turn discussion points into linked action items
 - The board owner can lock the board and moderate
+- Copy the action items for Slack, or the whole board as JSON
+- AI agents can work the board through [WebMCP](https://webmachinelearning.github.io/webmcp/): in a browser with a WebMCP agent, an open board offers tools to read it, add and edit items, merge and name groups, move things around, and create action items tied to what they address. The agent acts as you, with your nickname and permissions
 
 ## Use it
 

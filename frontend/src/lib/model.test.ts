@@ -143,4 +143,38 @@ describe('board model', () => {
       ].join('\n'),
     )
   })
+  it("exports the board as JSON, hiding other people's texts on request", () => {
+    const improve = item({ column: 'improve', text: 'Slow CI', votes: 2 })
+    const mine = item({ column: 'well', text: 'Pairing', mine: true, nickname: 'Kim' })
+    const action = item({
+      column: 'actions',
+      text: 'Cache deps',
+      link: { type: 'item', id: improve.id },
+    })
+    const data = model.fromLists([], [improve, mine, action])
+    const board = {
+      slug: 'abcdef',
+      title: 'Retro',
+      voteLimit: 5,
+      locked: false,
+      timer: null,
+      isOwner: false,
+      createdAt: '',
+    }
+    const json = model.boardAsJson(data, board)
+    expect(json.columns.improve.entries).toEqual([
+      { type: 'item', id: improve.id, text: 'Slow CI', author: null, votes: 2, mine: false },
+    ])
+    expect(json.columns.actions.entries[0]).toMatchObject({
+      text: 'Cache deps',
+      addresses: { type: 'item', id: improve.id, text: 'Slow CI' },
+    })
+    const hidden = model.boardAsJson(data, board, true)
+    expect(hidden.itemsHidden).toBe(true)
+    expect(hidden.columns.well.entries[0]).toMatchObject({ text: 'Pairing', author: 'Kim' })
+    expect(hidden.columns.actions.entries[0]).toMatchObject({
+      text: null,
+      addresses: { text: null },
+    })
+  })
 })

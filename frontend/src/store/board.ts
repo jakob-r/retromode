@@ -61,6 +61,25 @@ const data = (): model.BoardData => ({ items: get().items, groups: get().groups 
 
 let socket: RetroSocket | null = null
 
+const patchListeners = new Set<() => void>()
+
+/**
+ * Resolves once the next server patch has been applied (or after `timeoutMs`).
+ * The server acks a change before it broadcasts the patch, so this is how to
+ * see a change's authoritative result.
+ */
+export function nextPatch(timeoutMs = 1000): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timeout)
+      patchListeners.delete(done)
+      resolve()
+    }
+    const timeout = setTimeout(done, timeoutMs)
+    patchListeners.add(done)
+  })
+}
+
 /** The board is gone: drop everything we held about it, here and in this browser. */
 function wipe() {
   const slug = get().slug
@@ -171,6 +190,7 @@ export function connectBoard(slug: string): () => void {
     markFresh(created)
     voted.forEach(sprayVote)
     if (patch.board) syncTimer(patch.board)
+    patchListeners.forEach((listener) => listener())
   })
 
   return () => {
@@ -195,22 +215,31 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   NOT_FOUND: 'That was just removed by someone else',
 }
 
-/** Apply an optimistic change, send it, and roll back via resync if the server says no. */
+const OFFLINE = 'You are offline – reconnecting…'
+
+/**
+ * Apply an optimistic change, send it, and roll back via resync if the server
+ * says no. Resolves with the server's answer.
+ */
 function mutate(
   event: MutationEvent,
   input: unknown,
   optimistic?: (d: model.BoardData) => model.BoardData,
-) {
-  if (!socket?.connected) {
-    toast('You are offline – reconnecting…', 'error')
-    return
+): Promise<Ack> {
+  const s = socket
+  if (!s?.connected) {
+    toast(OFFLINE, 'error')
+    return Promise.resolve({ ok: false, error: 'INTERNAL', message: OFFLINE })
   }
   if (optimistic) set(optimistic(data()))
-  const emit = socket.emit as (e: string, i: unknown, ack: (res: Ack) => void) => void
-  emit.call(socket, event, input, (res: Ack) => {
-    if (res.ok) return
-    toast(MESSAGES[res.error] ?? 'Something went wrong – resyncing', 'error')
-    resync()
+  const emit = s.emit as (e: string, i: unknown, ack: (res: Ack) => void) => void
+  return new Promise((resolve) => {
+    emit.call(s, event, input, (res: Ack) => {
+      resolve(res)
+      if (res.ok) return
+      toast(MESSAGES[res.error] ?? 'Something went wrong – resyncing', 'error')
+      resync()
+    })
   })
 }
 
@@ -228,7 +257,7 @@ export const actions = {
     const id = uuid()
     const now = new Date().toISOString()
     const named = !anonymous && !!nickname
-    mutate(
+    const sent = mutate(
       'item:create',
       {
         id,
@@ -254,11 +283,12 @@ export const actions = {
         }),
     )
     markFresh([id])
+    return { id, sent }
   },
 
   updateItem(itemId: string, text: string, anonymous: boolean, nickname: string | null) {
     const named = !anonymous && !!nickname
-    mutate(
+    return mutate(
       'item:update',
       { itemId, text, anonymous: !named, nickname: nickname ?? undefined },
       (d) => model.patchItem(d, itemId, { text, nickname: named ? nickname : null }),
@@ -266,35 +296,37 @@ export const actions = {
   },
 
   deleteItem(itemId: string) {
-    mutate('item:delete', { itemId }, (d) => model.deleteItem(d, itemId))
+    return mutate('item:delete', { itemId }, (d) => model.deleteItem(d, itemId))
   },
 
   moveItem(itemId: string, column: ColumnKey, groupId: string | null, afterId: string | null) {
     const input = { itemId, column, groupId, afterId }
-    mutate('item:move', input, (d) => model.moveItem(d, input))
+    return mutate('item:move', input, (d) => model.moveItem(d, input))
   },
 
   /** Ties an action item to something to improve (null cuts the string). */
   link(itemId: string, target: EntryRef | null) {
-    mutate('item:link', { itemId, target }, (d) => model.link(d, itemId, target))
+    return mutate('item:link', { itemId, target }, (d) => model.link(d, itemId, target))
   },
 
   merge(source: EntryRef, target: EntryRef) {
     const input = { source, target, newGroupId: uuid() }
-    mutate('group:merge', input, (d) => model.merge(d, input))
+    return mutate('group:merge', input, (d) => model.merge(d, input))
   },
 
   ungroup(groupId: string) {
-    mutate('group:ungroup', { groupId }, (d) => model.ungroup(d, groupId))
+    return mutate('group:ungroup', { groupId }, (d) => model.ungroup(d, groupId))
   },
 
   renameGroup(groupId: string, title: string | null) {
-    mutate('group:update', { groupId, title }, (d) => model.patchGroup(d, groupId, { title }))
+    return mutate('group:update', { groupId, title }, (d) =>
+      model.patchGroup(d, groupId, { title }),
+    )
   },
 
   moveGroup(groupId: string, column: ColumnKey, afterId: string | null) {
     const input = { groupId, column, afterId }
-    mutate('group:move', input, (d) => model.moveGroup(d, input))
+    return mutate('group:move', input, (d) => model.moveGroup(d, input))
   },
 
   /** Returns false (without sending) when the column's vote budget is spent. */
@@ -336,7 +368,7 @@ export const actions = {
   nuke(): Promise<boolean> {
     const s = socket
     if (!s?.connected) {
-      toast('You are offline – reconnecting…', 'error')
+      toast(OFFLINE, 'error')
       return Promise.resolve(false)
     }
     return new Promise((resolve) => {

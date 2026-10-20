@@ -15,6 +15,7 @@ import { SparkleShape } from '../components/Sparkles'
 import { TimeUpBurst } from '../components/TimeUp'
 import { hasAnsweredNickname, setOwnerKey } from '../lib/identity'
 import { celebrate } from '../lib/motion'
+import { registerBoardTools } from '../store/agentTools'
 import { connectBoard, useBoard } from '../store/board'
 import { useMe } from '../store/me'
 import { NotFound } from './NotFound'
@@ -36,6 +37,7 @@ export function BoardPage() {
   }, [ownerParam, slug, navigate, location.state])
 
   useEffect(() => connectBoard(slug), [slug])
+  useEffect(() => registerBoardTools(), [])
 
   const status = useBoard((s) => s.status)
   const board = useBoard((s) => s.board)

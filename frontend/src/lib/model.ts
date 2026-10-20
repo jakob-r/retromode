@@ -4,6 +4,7 @@
  * the server's patches are authoritative and overwrite whatever we guessed.
  */
 import {
+  COLUMNS,
   positionAfter,
   positionsBetween,
   sortPositioned,
@@ -11,9 +12,11 @@ import {
   type ColumnKey,
   type EntryRef,
   type Positioned,
+  type PublicBoard,
   type PublicGroup,
   type PublicItem,
 } from '@retromode/shared'
+import { COLUMN_META } from './columns'
 
 export interface BoardData {
   items: Record<string, PublicItem>
@@ -384,4 +387,89 @@ export function actionItemsForSlack(data: BoardData, title: string): string | nu
   }
   if (lines.length === 0) return null
   return [`*🚀 Action items · ${title}*`, ...lines].join('\n')
+}
+
+export interface ItemJson {
+  type: 'item'
+  id: string
+  /** null while the timer hides other people's items */
+  text: string | null
+  /** null = anonymous */
+  author: string | null
+  votes: number
+  mine: boolean
+  /** Action items only: the "To improve" entry this one addresses */
+  addresses?: { type: EntryRef['type']; id: string; text: string | null }
+}
+
+export interface GroupJson {
+  type: 'group'
+  id: string
+  title: string | null
+  votes: number
+  items: ItemJson[]
+}
+
+export interface BoardJson {
+  title: string
+  locked: boolean
+  voteLimit: number
+  /** Other people's item texts are left out until the timer runs out */
+  itemsHidden: boolean
+  columns: Record<ColumnKey, { title: string; entries: (ItemJson | GroupJson)[] }>
+}
+
+/**
+ * The whole board as plain JSON, in display order. With `hidden`, other
+ * people's texts are left out, as on screen.
+ */
+export function boardAsJson(data: BoardData, board: PublicBoard, hidden = false): BoardJson {
+  const linkTargets = new Map(links(data).map((l) => [l.itemId, l.target]))
+  const text = (item: PublicItem) => (hidden && !item.mine ? null : item.text)
+  const label = (target: EntryRef): string | null => {
+    if (!hidden) return entryLabel(data, target)
+    if (target.type === 'group') return data.groups[target.id]?.title ?? null
+    const item = data.items[target.id]
+    return item ? text(item) : null
+  }
+  const itemJson = (item: PublicItem): ItemJson => {
+    const target = linkTargets.get(item.id)
+    return {
+      type: 'item',
+      id: item.id,
+      text: text(item),
+      author: item.nickname,
+      votes: item.votes,
+      mine: item.mine,
+      ...(target && {
+        addresses: { type: target.type, id: target.id, text: label(target) },
+      }),
+    }
+  }
+  const columns = Object.fromEntries(
+    COLUMNS.map((column) => [
+      column,
+      {
+        title: COLUMN_META[column].title,
+        entries: columnEntries(data, column).map((entry): ItemJson | GroupJson =>
+          entry.type === 'item'
+            ? itemJson(entry.item)
+            : {
+                type: 'group',
+                id: entry.id,
+                title: entry.group.title,
+                votes: entry.votes,
+                items: entry.items.map(itemJson),
+              },
+        ),
+      },
+    ]),
+  ) as BoardJson['columns']
+  return {
+    title: board.title,
+    locked: board.locked,
+    voteLimit: board.voteLimit,
+    itemsHidden: hidden,
+    columns,
+  }
 }

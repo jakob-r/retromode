@@ -6,7 +6,7 @@ import { LINK_SOURCE, type Entry } from '../lib/model'
 import { spring } from '../lib/motion'
 import { useDropMode } from '../store/drag'
 import { AddItemForm } from './AddItemForm'
-import { CopyActionsButton } from './CopyActionsButton'
+import { CopyActionsButton, CopyBoardButton } from './CopyActionsButton'
 import { DropIndicator } from './DropIndicator'
 import { GroupCard } from './GroupCard'
 import { ItemCard } from './ItemCard'
@@ -52,7 +52,10 @@ export function Column({ column, board, entries, count, used, className = '' }: 
         </h2>
         {!board.locked && <VoteBudget used={used} limit={board.voteLimit} />}
         {column === LINK_SOURCE && (
-          <CopyActionsButton className="bg-white/70 text-[var(--accent-deep)] hover:bg-white" />
+          <div className="flex flex-wrap gap-1.5">
+            <CopyActionsButton className="bg-white/70 text-[var(--accent-deep)] hover:bg-white" />
+            <CopyBoardButton className="bg-white/70 text-[var(--accent-deep)] hover:bg-white" />
+          </div>
         )}
       </header>
 

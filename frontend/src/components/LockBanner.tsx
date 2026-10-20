@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { Lock } from 'lucide-react'
-import { CopyActionsButton } from './CopyActionsButton'
+import { CopyActionsButton, CopyBoardButton } from './CopyActionsButton'
 
 export function LockBanner({ locked, isOwner }: { locked: boolean; isOwner: boolean }) {
   return (
@@ -27,7 +27,10 @@ export function LockBanner({ locked, isOwner }: { locked: boolean; isOwner: bool
                 It's read-only now{isOwner ? ' – unlock it in the settings.' : '.'}
               </span>
             </p>
-            <CopyActionsButton className="ml-auto shrink-0 bg-white/15 text-white hover:bg-white/25" />
+            <div className="ml-auto flex shrink-0 gap-1.5">
+              <CopyActionsButton className="bg-white/15 text-white hover:bg-white/25" />
+              <CopyBoardButton className="bg-white/15 text-white hover:bg-white/25" />
+            </div>
           </div>
         </motion.div>
       )}

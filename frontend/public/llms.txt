@@ -20,6 +20,8 @@
 - Hide items from others while everyone writes, then reveal them
 - Shared timer for timeboxed phases
 - Board owner can lock the board and moderate
+- Export: copy the action items for Slack, or the whole board as JSON
+- AI agents: an open board registers WebMCP tools (get_board, add_item, add_action_item, link_action_item, edit_item, delete_item, merge, rename_group, ungroup, move), so a browser agent can read and edit it on the person's behalf
 
 ## Links
 
