@@ -47,7 +47,7 @@ export function groupMembers(data: BoardData, groupId: string): PublicItem[] {
   return sortPositioned(Object.values(data.items).filter((i) => i.groupId === groupId))
 }
 
-/** Top-level entries of a column (groups and ungrouped items), in display order. */
+/** Top-level entries of a column (groups and ungrouped items), in position order. */
 export function columnEntries(data: BoardData, column: ColumnKey): Entry[] {
   const entries: Entry[] = []
   for (const group of Object.values(data.groups)) {
@@ -68,6 +68,35 @@ export function columnEntries(data: BoardData, column: ColumnKey): Entry[] {
     }
   }
   return sortPositioned(entries)
+}
+
+/** Vote counts the display is sorted by; missing items count with their current votes. */
+export type SortVotes = Readonly<Record<string, number>>
+
+/**
+ * Display order: most votes first (a group by its items' total, items within
+ * a group too). Equal votes keep their position order, so drag & drop still
+ * orders entries with the same votes.
+ */
+export function sortByVotes(entries: Entry[], sortVotes: SortVotes = {}): Entry[] {
+  const votesOf = (item: PublicItem) => sortVotes[item.id] ?? item.votes
+  const byVotes = <T>(list: T[], votes: (e: T) => number) =>
+    list
+      .map((e, index) => ({ e, index, votes: votes(e) }))
+      .sort((a, b) => b.votes - a.votes || a.index - b.index)
+      .map(({ e }) => e)
+  return byVotes(
+    entries.map((entry) =>
+      entry.type === 'item' ? entry : { ...entry, items: byVotes(entry.items, votesOf) },
+    ),
+    (entry) =>
+      entry.type === 'item' ? votesOf(entry.item) : entry.items.reduce((n, i) => n + votesOf(i), 0),
+  )
+}
+
+/** Each item's current vote count. */
+export function voteCounts(data: BoardData): Record<string, number> {
+  return Object.fromEntries(Object.values(data.items).map((i) => [i.id, i.votes]))
 }
 
 function topLevel(data: BoardData, column: ColumnKey): Positioned[] {
@@ -377,7 +406,7 @@ export function actionItemsForSlack(data: BoardData, title: string): string | nu
   }
 
   const lines: string[] = []
-  for (const entry of columnEntries(data, LINK_SOURCE)) {
+  for (const entry of sortByVotes(columnEntries(data, LINK_SOURCE))) {
     if (entry.type === 'item') {
       lines.push(...line(entry.item, '•', ''))
     } else {
@@ -451,7 +480,7 @@ export function boardAsJson(data: BoardData, board: PublicBoard, hidden = false)
       column,
       {
         title: COLUMN_META[column].title,
-        entries: columnEntries(data, column).map((entry): ItemJson | GroupJson =>
+        entries: sortByVotes(columnEntries(data, column)).map((entry): ItemJson | GroupJson =>
           entry.type === 'item'
             ? itemJson(entry.item)
             : {

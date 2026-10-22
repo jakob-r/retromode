@@ -295,7 +295,7 @@ const tools: WebMcpTool[] = [
   {
     name: 'move',
     title: 'Move or reorder an entry',
-    description: `Moves an item or a whole group to a column, placed right after the entry \`afterId\` (omit or null = at the top). An item can also be put into a group with \`groupId\` (then \`afterId\` is an item in that group). ${columnsDoc}`,
+    description: `Moves an item or a whole group to a column, placed right after the entry \`afterId\` (omit or null = at the top). Columns and groups are shown sorted by votes, so this only orders entries with the same votes. An item can also be put into a group with \`groupId\` (then \`afterId\` is an item in that group). ${columnsDoc}`,
     inputSchema: {
       type: 'object',
       properties: {

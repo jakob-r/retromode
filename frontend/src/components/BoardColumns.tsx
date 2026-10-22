@@ -111,6 +111,7 @@ function executeDrop(active: EntryRef, hint: DropHint) {
     groupId = active.type === 'item' ? (refItem?.groupId ?? null) : null
     column = (refItem?.column ?? data.groups[ref.id]?.column)!
     if (!column) return
+    // Positions, not the vote-sorted display: "before X" means right after X's predecessor
     const siblings = groupId ? model.groupMembers(data, groupId) : model.columnEntries(data, column)
     const filtered = siblings.filter((e) => e.id !== active.id)
     const index = filtered.findIndex((e) => e.id === ref.id)
@@ -134,6 +135,7 @@ function executeDrop(active: EntryRef, hint: DropHint) {
 export function BoardColumns({ board }: { board: PublicBoard }) {
   const items = useBoard((s) => s.items)
   const groups = useBoard((s) => s.groups)
+  const sortVotes = useBoard((s) => s.sortVotes)
   const active = useDrag((s) => s.active)
   const [mobileColumn, setMobileColumn] = useState<ColumnKey>('well')
 
@@ -142,11 +144,11 @@ export function BoardColumns({ board }: { board: PublicBoard }) {
     () =>
       COLUMNS.map((column) => ({
         column,
-        entries: model.columnEntries(data, column),
+        entries: model.sortByVotes(model.columnEntries(data, column), sortVotes),
         count: model.columnCount(data, column),
         used: model.votesUsed(data, column),
       })),
-    [data],
+    [data, sortVotes],
   )
 
   const sensors = useSensors(

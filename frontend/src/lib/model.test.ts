@@ -177,4 +177,26 @@ describe('board model', () => {
       addresses: { text: null },
     })
   })
+
+  it('sorts by votes, groups by their total, and keeps position order on ties', () => {
+    const a = item({ votes: 1 })
+    const b = item({ votes: 0 })
+    const c = item({ votes: 4 })
+    const d = item({ votes: 1 })
+    const e = item({ votes: 3 })
+    let data = model.fromLists([], [a, b, c, d, e])
+    data = model.merge(data, {
+      source: { type: 'item', id: e.id },
+      target: { type: 'item', id: b.id },
+      newGroupId: 'g1',
+    })
+    const sorted = model.sortByVotes(model.columnEntries(data, 'well'))
+    expect(sorted.map((x) => x.id)).toEqual([c.id, 'g1', a.id, d.id])
+    const group = sorted[1] as Extract<model.Entry, { type: 'group' }>
+    expect(group.items.map((i) => i.id)).toEqual([e.id, b.id])
+
+    // The display follows the settled counts, not the live ones
+    const settled = { ...model.voteCounts(data), [c.id]: 0 }
+    expect(model.sortByVotes(model.columnEntries(data, 'well'), settled).at(-1)!.id).toBe(c.id)
+  })
 })

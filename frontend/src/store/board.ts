@@ -36,6 +36,8 @@ interface BoardStore extends model.BoardData {
   freshItems: Record<string, true>
   /** Emoji sprays playing on vote buttons right now, one per new vote (by anyone) */
   voteSprays: VoteSpray[]
+  /** Vote counts the columns are sorted by; they catch up once nobody voted for a moment */
+  sortVotes: model.SortVotes
   /** Local clock time when the shared timer runs out, while it runs */
   timerEndsAt: number | null
   /** Bumped each time the timer runs out while we watched it */
@@ -51,6 +53,7 @@ const initial = (): BoardStore => ({
   remoteArrivals: {},
   freshItems: {},
   voteSprays: [],
+  sortVotes: {},
   timerEndsAt: null,
   timeUps: 0,
   ...model.emptyData(),
@@ -118,6 +121,22 @@ function sprayVote(itemId: string) {
   setTimeout(() => set({ voteSprays: get().voteSprays.filter((s) => s.key !== key) }), SPRAY_MS)
 }
 
+const SORT_DELAY_MS = 500
+let sortTimeout: ReturnType<typeof setTimeout> | undefined
+let seenVotes: Record<string, number> = {}
+
+// Re-sort by votes only once nobody (here or elsewhere) voted for a moment, so
+// cards don't jump away from under someone's cursor while votes are flowing in.
+useBoard.subscribe((state, prev) => {
+  if (state.items === prev.items) return
+  const votes = model.voteCounts(state)
+  const voted = Object.entries(votes).some(([id, n]) => id in seenVotes && seenVotes[id] !== n)
+  seenVotes = votes
+  if (!voted) return
+  clearTimeout(sortTimeout)
+  sortTimeout = setTimeout(() => set({ sortVotes: model.voteCounts(get()) }), SORT_DELAY_MS)
+})
+
 let timeUpTimeout: ReturnType<typeof setTimeout> | undefined
 
 /** Follows the board's timer; when it runs out here, everyone watching gets the time-up moment. */
@@ -137,12 +156,16 @@ function syncTimer(board: PublicBoard | null) {
 
 function applySnapshot(snapshot: BoardSnapshot) {
   syncTimer(snapshot.board)
+  const data = model.fromLists(snapshot.groups, snapshot.items)
+  clearTimeout(sortTimeout)
+  seenVotes = model.voteCounts(data)
   set({
     status: 'ready',
     board: snapshot.board,
     online: snapshot.online,
     ready: snapshot.ready,
-    ...model.fromLists(snapshot.groups, snapshot.items),
+    sortVotes: seenVotes,
+    ...data,
   })
 }
 

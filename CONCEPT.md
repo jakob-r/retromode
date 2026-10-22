@@ -80,6 +80,7 @@ A small, real-time retrospective board. You open the site, create a board, share
   - When your budget in a column is spent, that column's vote buttons are greyed out (you can still take votes back with 👎). The other columns are unaffected.
   - Votes count toward the column the item is **currently** in. If an item moves to another column, its votes move with it. A voter who ends up over budget there keeps their votes but can't add new ones in that column until they're back under the limit.
 - Items you've voted on are highlighted, so you always know where your votes went.
+- **Sorted by votes:** columns (and the items inside a group) are sorted by votes, most first; a group counts with its total. The order catches up 0.5 s after the last vote from anyone, so cards don't jump away while people are clicking. Entries with the same votes keep their drag & drop order.
 
 ### 2.6 Board settings (owner only)
 - A ⚙️ settings popover that only the board owner can see:
@@ -469,7 +470,6 @@ Notes:
 
 - Hide/reveal phase (items blurred until the owner reveals them)
 - Timer for timeboxed phases
-- Sort columns by votes
 - Assign action items to a nickname, mark them done
 - Export to Markdown / copy to clipboard
 - Live cursors / "someone is typing…" indicators
