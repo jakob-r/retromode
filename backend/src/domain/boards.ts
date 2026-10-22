@@ -4,6 +4,7 @@ import { customAlphabet } from 'nanoid'
 import {
   LIMITS,
   positionAfter,
+  positionAtEnd,
   positionsBetween,
   sortPositioned,
   type BoardReadyInput,
@@ -293,8 +294,10 @@ export function createItem(db: Db, actor: Actor, input: ItemCreateInput): Promis
   return mutate(db, actor, async (tx, board, changes) => {
     if (input.link && input.column !== LINK_SOURCE) throw invalid('Only action items can be tied')
     const link = await linkColumns(tx, board.id, input.link ?? null)
-    // Newest items go to the top of the column, right below the input.
-    const position = positionAfter(await columnEntries(tx, board.id, input.column), null)
+    // Newest items go to the top of the column, right below the input. Action items
+    // made from something to improve go to the bottom, after the ones already planned.
+    const siblings = await columnEntries(tx, board.id, input.column)
+    const position = input.link ? positionAtEnd(siblings) : positionAfter(siblings, null)
     const inserted = await tx
       .insert(items)
       .values({

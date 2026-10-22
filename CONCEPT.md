@@ -40,7 +40,7 @@ A small, real-time retrospective board. You open the site, create a board, share
 - On your first visit (to any board) you're asked for a **nickname**. It's saved in the browser, can be changed at any time from the header, and you can skip it (you then post anonymously only).
 
 ### 2.3 Items
-- Anyone can add an item to any column (text, max 500 characters, multi-line). New items appear at the top of the column, right below the input.
+- Anyone can add an item to any column (text, max 500 characters, multi-line). New items appear at the top of the column, right below the input. An action item created from a "To improve" item or group goes to the bottom of the action items instead.
 - For **each item** the author chooses:
   - 👤 **with nickname** (default if you have one), or
   - 🥷 **anonymous**

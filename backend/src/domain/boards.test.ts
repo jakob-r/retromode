@@ -278,6 +278,10 @@ describe('links', () => {
       link: { type: 'item', id: improve },
     })
     expect(await linkOf(state, created)).toEqual({ item: improve, group: null })
+    // Made from something to improve: at the bottom, unlike plain new items on top
+    const plain = await addItem(a, 'actions')
+    const order = sortPositioned((await state()).items.filter((i) => i.column === 'actions'))
+    expect(order.map((i) => i.id)).toEqual([plain, action, created])
     await rejects(
       boards.createItem(db, a, {
         id: randomUUID(),

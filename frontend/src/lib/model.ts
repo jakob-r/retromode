@@ -6,6 +6,7 @@
 import {
   COLUMNS,
   positionAfter,
+  positionAtEnd,
   positionsBetween,
   sortPositioned,
   type BoardPatch,
@@ -157,7 +158,9 @@ function retargetLinks(data: BoardData, from: EntryRef, itemId: string | null): 
 
 export function createItem(data: BoardData, item: Omit<PublicItem, 'position'>): BoardData {
   const next = clone(data)
-  next.items[item.id] = { ...item, position: positionAfter(topLevel(data, item.column), null) }
+  const siblings = topLevel(data, item.column)
+  const position = item.link ? positionAtEnd(siblings) : positionAfter(siblings, null)
+  next.items[item.id] = { ...item, position }
   return next
 }
 
