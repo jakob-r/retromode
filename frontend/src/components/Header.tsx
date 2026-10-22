@@ -5,6 +5,7 @@ import type { Status } from '../store/board'
 import { useBoard } from '../store/board'
 import { useMe } from '../store/me'
 import { Logo } from './Logo'
+import { ReadyButton } from './ReadyButton'
 import { SettingsPopover } from './SettingsPopover'
 import { TimerControl } from './TimerControl'
 
@@ -58,6 +59,7 @@ export function Header({
             <span className="tabular-nums">{online}</span>
           </span>
           <TimerControl />
+          <ReadyButton />
           <button
             type="button"
             onClick={openNicknameDialog}

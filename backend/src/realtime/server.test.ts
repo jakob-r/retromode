@@ -141,6 +141,27 @@ describe('realtime', () => {
     })
   })
 
+  it('stops the timer for everyone once all participants are ready', async () => {
+    const { slug } = await createBoard(randomUUID())
+    const alice = client()
+    const bob = client()
+    await emit(alice, 'board:join', { slug })
+    await emit(bob, 'board:join', { slug })
+    await emit(alice, 'board:timer', { seconds: 300 })
+
+    const halfReady = new Promise<{ ready: number }>((resolve) =>
+      bob.on('presence', (p) => p.ready === 1 && resolve(p)),
+    )
+    expect((await emit(alice, 'board:ready', { ready: true })).ok).toBe(true)
+    expect(await halfReady).toEqual({ online: 2, ready: 1 })
+
+    const timeUp = new Promise<void>((resolve) => alice.once('board:timeup', resolve))
+    expect((await emit(bob, 'board:ready', { ready: true })).ok).toBe(true)
+    await timeUp
+    const sync = await emit<BoardSnapshot>(alice, 'board:sync', {})
+    expect(sync.ok && sync.data.board.timer).toBeNull()
+  })
+
   it('validates input and requires joining first', async () => {
     const { slug } = await createBoard(randomUUID())
     const socket = client()

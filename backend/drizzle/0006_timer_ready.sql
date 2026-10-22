@@ -1,0 +1,1 @@
+ALTER TABLE "boards" ADD COLUMN "timer_ready_client_ids" uuid[] DEFAULT '{}'::uuid[] NOT NULL;

@@ -5,6 +5,7 @@ import type { z } from 'zod'
 import {
   boardJoinSchema,
   boardNukeSchema,
+  boardReadySchema,
   boardSettingsSchema,
   boardTimerSchema,
   groupMergeSchema,
@@ -52,6 +53,7 @@ type Mutation<S extends z.ZodType> = (
 const mutations: { [E in MutationEvent]: [z.ZodType, Mutation<z.ZodType>] } = {
   'board:settings': [boardSettingsSchema, boards.updateSettings as Mutation<z.ZodType>],
   'board:timer': [boardTimerSchema, boards.setTimer as Mutation<z.ZodType>],
+  'board:ready': [boardReadySchema, boards.setReady as Mutation<z.ZodType>],
   'item:create': [itemCreateSchema, boards.createItem as Mutation<z.ZodType>],
   'item:update': [itemUpdateSchema, boards.updateItem as Mutation<z.ZodType>],
   'item:delete': [itemDeleteSchema, boards.deleteItem as Mutation<z.ZodType>],
@@ -101,20 +103,35 @@ export function createRealtimeServer(
     return next
   }
 
-  async function onlineCount(boardId: string): Promise<number> {
+  async function onlineClients(boardId: string): Promise<Set<string>> {
     const sockets = await io.in(room(boardId)).fetchSockets()
-    return new Set(sockets.map((s) => s.data.clientId)).size
+    return new Set(sockets.map((s) => s.data.clientId))
   }
 
+  /**
+   * Tells everyone who's here and how many of them are done with the timer.
+   * Once all of them are, the timer stops early and it's time's up for everyone.
+   */
   async function announcePresence(boardId: string) {
-    io.to(room(boardId)).emit('presence', { online: await onlineCount(boardId) })
+    try {
+      const online = await onlineClients(boardId)
+      const { ready, finished } = await boards.settleReady(db, boardId, online)
+      if (finished) {
+        await broadcast(boardId, finished)
+        io.to(room(boardId)).emit('board:timeup')
+      }
+      io.to(room(boardId)).emit('presence', { online: online.size, ready })
+    } catch (err) {
+      log.error({ err }, 'presence failed')
+    }
   }
 
   async function snapshot(socket: RetroSocket): Promise<BoardSnapshot> {
     const boardId = socket.data.boardId
     if (!boardId) throw new DomainError('NOT_JOINED', 'Join a board first')
     const state = await boards.loadBoardState(db, boardId)
-    return snapshotFor(state, socket.data, await onlineCount(boardId))
+    const online = await onlineClients(boardId)
+    return snapshotFor(state, socket.data, online.size, boards.readyAmong(state.board, online))
   }
 
   io.use((socket, next) => {
@@ -192,6 +209,7 @@ export function createRealtimeServer(
           const changes = await run(db, { boardId, ...socket.data }, parsed.data)
           ack({ ok: true, data: null })
           if (!changes.isEmpty) await broadcast(boardId, changes)
+          if (event === 'board:ready' || event === 'board:timer') await announcePresence(boardId)
         } catch (error) {
           ack(fail(error, log))
         }

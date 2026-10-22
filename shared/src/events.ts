@@ -1,6 +1,7 @@
 import type {
   BoardJoinInput,
   BoardNukeInput,
+  BoardReadyInput,
   BoardSettingsInput,
   BoardTimerInput,
   GroupMergeInput,
@@ -23,6 +24,7 @@ export interface ClientToServerEvents {
   'board:sync': Handler<Record<string, never>, BoardSnapshot>
   'board:settings': Handler<BoardSettingsInput>
   'board:timer': Handler<BoardTimerInput>
+  'board:ready': Handler<BoardReadyInput>
   'board:nuke': Handler<BoardNukeInput>
   'item:create': Handler<ItemCreateInput>
   'item:update': Handler<ItemUpdateInput>
@@ -39,7 +41,10 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   'board:patch': (patch: BoardPatch) => void
-  presence: (data: { online: number }) => void
+  /** ready: how many of the people here said they're done with the running timer */
+  presence: (data: { online: number; ready: number }) => void
+  /** Everyone was ready, so the timer stopped early: time's up for everyone */
+  'board:timeup': () => void
   /** The owner deleted the board; it no longer exists */
   'board:nuked': () => void
 }

@@ -43,6 +43,13 @@
       "when": 1791755018608,
       "tag": "0005_default_vote_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792664057777,
+      "tag": "0006_timer_ready",
+      "breakpoints": true
     }
   ]
 }

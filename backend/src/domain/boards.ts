@@ -6,6 +6,7 @@ import {
   positionAfter,
   positionsBetween,
   sortPositioned,
+  type BoardReadyInput,
   type BoardSettingsInput,
   type BoardTimerInput,
   type ColumnKey,
@@ -604,12 +605,62 @@ export function setTimer(db: Db, actor: Actor, input: BoardTimerInput): Promise<
           timerEndsAt: input.seconds === null ? null : new Date(Date.now() + input.seconds * 1000),
           timerSeconds: input.seconds,
           timerHideItems: input.seconds !== null && (input.hideItems ?? false),
+          timerReadyClientIds: [],
         })
         .where(eq(boards.id, board.id))
       changes.board = true
     },
     { allowWhenLocked: true },
   )
+}
+
+const timerRunning = (board: BoardRow) =>
+  board.timerEndsAt !== null && board.timerEndsAt.getTime() > Date.now()
+
+/** Says I'm done with the running timer (or not anymore). Without a running timer there's nothing to be ready for. */
+export function setReady(db: Db, actor: Actor, input: BoardReadyInput): Promise<Changes> {
+  return mutate(
+    db,
+    actor,
+    async (tx, board, changes) => {
+      if (!timerRunning(board)) return
+      const others = board.timerReadyClientIds.filter((id) => id !== actor.clientId)
+      const ready = input.ready ? [...others, actor.clientId] : others
+      if (ready.length === board.timerReadyClientIds.length) return
+      await tx.update(boards).set({ timerReadyClientIds: ready }).where(eq(boards.id, board.id))
+      changes.board = true
+    },
+    { allowWhenLocked: true },
+  )
+}
+
+/** Who among `online` is done with the running timer. */
+export function readyAmong(board: BoardRow, online: ReadonlySet<string>): number {
+  if (!timerRunning(board)) return 0
+  return board.timerReadyClientIds.filter((id) => online.has(id)).length
+}
+
+/**
+ * Counts who among `online` is done with the running timer, and stops it once
+ * all of them are (`finished` then holds the changes to broadcast).
+ */
+export async function settleReady(
+  db: Db,
+  boardId: string,
+  online: ReadonlySet<string>,
+): Promise<{ ready: number; finished: Changes | null }> {
+  return db.transaction(async (tx) => {
+    const [board] = await tx.select().from(boards).where(eq(boards.id, boardId)).for('update')
+    const ready = board ? readyAmong(board, online) : 0
+    if (!board || online.size === 0 || ready < online.size) return { ready, finished: null }
+    await tx
+      .update(boards)
+      .set({ timerEndsAt: null, timerReadyClientIds: [] })
+      .where(eq(boards.id, board.id))
+    const finished = new Changes()
+    finished.board = true
+    return { ready: 0, finished }
+  })
 }
 
 // ---------------------------------------------------------------------------

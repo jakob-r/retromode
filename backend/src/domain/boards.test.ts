@@ -431,6 +431,50 @@ describe('timer', () => {
   })
 })
 
+describe('ready', () => {
+  it('stops the timer early once everyone online is ready', async () => {
+    const { actor, board, state } = await setupBoard()
+    const a = actor()
+    const b = actor()
+    const online = new Set([a.clientId, b.clientId])
+
+    // Nothing to be ready for without a running timer
+    expect((await boards.setReady(db, a, { ready: true })).isEmpty).toBe(true)
+
+    await boards.setTimer(db, a, { seconds: 300 })
+    await boards.setReady(db, a, { ready: true })
+    expect(snapshotFor(await state(), a, 2).board.timer?.meReady).toBe(true)
+    expect(snapshotFor(await state(), b, 2).board.timer?.meReady).toBe(false)
+    expect(await boards.settleReady(db, board.id, online)).toEqual({ ready: 1, finished: null })
+
+    // Changing your mind counts too
+    await boards.setReady(db, a, { ready: false })
+    expect((await boards.settleReady(db, board.id, online)).ready).toBe(0)
+
+    await boards.setReady(db, a, { ready: true })
+    await boards.setReady(db, b, { ready: true })
+    const { finished } = await boards.settleReady(db, board.id, online)
+    expect(finished?.board).toBe(true)
+    expect(snapshotFor(await state(), a, 2).board.timer).toBeNull()
+  })
+
+  it('only counts people who are still here, and restarting clears it', async () => {
+    const { actor, board } = await setupBoard()
+    const a = actor()
+    const b = actor()
+    await boards.setTimer(db, a, { seconds: 300 })
+    await boards.setReady(db, a, { ready: true })
+
+    await boards.setTimer(db, b, { seconds: 300 })
+    expect((await boards.settleReady(db, board.id, new Set([a.clientId]))).ready).toBe(0)
+
+    await boards.setReady(db, a, { ready: true })
+    // b, who wasn't ready, left
+    const { finished } = await boards.settleReady(db, board.id, new Set([a.clientId]))
+    expect(finished).not.toBeNull()
+  })
+})
+
 describe('maintenance', () => {
   it('deletes boards without recent activity', async () => {
     const { board } = await setupBoard()

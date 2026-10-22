@@ -36,6 +36,11 @@ export const boards = pgTable(
     timerEndsAt: timestamp('timer_ends_at', { withTimezone: true }),
     timerSeconds: integer('timer_seconds'),
     timerHideItems: boolean('timer_hide_items').notNull().default(false),
+    /** Who said they're done before the timer ran out; it stops early once everyone online is */
+    timerReadyClientIds: uuid('timer_ready_client_ids')
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
     ...timestamps,
     lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).notNull().defaultNow(),
   },

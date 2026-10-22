@@ -21,6 +21,8 @@ export interface PublicTimer {
   remainingMs: number
   /** Everyone sees only their own items' text until it runs out */
   hideItems: boolean
+  /** Personalized: whether the receiving client said they're done */
+  meReady: boolean
 }
 
 export interface PublicGroup {
@@ -54,6 +56,8 @@ export interface BoardSnapshot {
   groups: PublicGroup[]
   items: PublicItem[]
   online: number
+  /** How many of the people online are done with the running timer */
+  ready: number
 }
 
 /** A set of changes, applied atomically by clients. */

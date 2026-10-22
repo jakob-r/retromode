@@ -95,6 +95,9 @@ export const boardTimerSchema = z.object({
   hideItems: z.boolean().optional(),
 })
 
+/** Says I'm done (or not anymore) while the timer runs. */
+export const boardReadySchema = z.object({ ready: z.boolean() })
+
 export type CreateBoardInput = z.infer<typeof createBoardSchema>
 export type BoardJoinInput = z.infer<typeof boardJoinSchema>
 export type ItemCreateInput = z.infer<typeof itemCreateSchema>
@@ -110,4 +113,5 @@ export type GroupMoveInput = z.infer<typeof groupMoveSchema>
 export type VoteInput = z.infer<typeof voteSchema>
 export type BoardSettingsInput = z.infer<typeof boardSettingsSchema>
 export type BoardTimerInput = z.infer<typeof boardTimerSchema>
+export type BoardReadyInput = z.infer<typeof boardReadySchema>
 export type BoardNukeInput = z.infer<typeof boardNukeSchema>

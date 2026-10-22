@@ -28,6 +28,8 @@ interface BoardStore extends model.BoardData {
   status: Status
   board: PublicBoard | null
   online: number
+  /** How many of the people here are done with the running timer */
+  ready: number
   /** Items that arrived from other people since load, for a short glow */
   remoteArrivals: Record<string, true>
   /** Items created moments ago (by anyone), for the emoji burst */
@@ -45,6 +47,7 @@ const initial = (): BoardStore => ({
   status: 'connecting',
   board: null,
   online: 0,
+  ready: 0,
   remoteArrivals: {},
   freshItems: {},
   voteSprays: [],
@@ -138,6 +141,7 @@ function applySnapshot(snapshot: BoardSnapshot) {
     status: 'ready',
     board: snapshot.board,
     online: snapshot.online,
+    ready: snapshot.ready,
     ...model.fromLists(snapshot.groups, snapshot.items),
   })
 }
@@ -164,7 +168,9 @@ export function connectBoard(slug: string): () => void {
   s.on('connect_error', () => {
     if (get().status === 'ready') set({ status: 'reconnecting' })
   })
-  s.on('presence', ({ online }) => set({ online }))
+  s.on('presence', ({ online, ready }) => set({ online, ready }))
+  // Everyone was ready before the timer ran out; the patch stopping it came just before
+  s.on('board:timeup', () => set({ timerEndsAt: null, timeUps: get().timeUps + 1 }))
   s.on('board:nuked', () => {
     wipe()
     s.disconnect()
@@ -388,10 +394,24 @@ export const actions = {
   setTimer(seconds: number | null, hideItems = false) {
     const board = get().board
     if (board && socket?.connected) {
-      const timer = seconds === null ? null : { seconds, remainingMs: seconds * 1000, hideItems }
-      set({ board: { ...board, timer } })
+      const timer =
+        seconds === null
+          ? null
+          : { seconds, remainingMs: seconds * 1000, hideItems, meReady: false }
+      set({ board: { ...board, timer }, ready: 0 })
       syncTimer({ ...board, timer })
     }
     mutate('board:timer', { seconds, hideItems })
+  },
+
+  /** Says I'm done with the running timer (or not anymore); once everyone is, it stops early. */
+  setReady(ready: boolean) {
+    const { board, ready: count } = get()
+    if (!board?.timer || board.timer.meReady === ready || !socket?.connected) return
+    set({
+      board: { ...board, timer: { ...board.timer, meReady: ready } },
+      ready: Math.max(0, count + (ready ? 1 : -1)),
+    })
+    mutate('board:ready', { ready })
   },
 }
