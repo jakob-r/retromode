@@ -18,7 +18,7 @@ export function AddItemForm({ column }: { column: ColumnKey }) {
     e?.preventDefault()
     const value = text.trim()
     if (!value) return
-    actions.createItem(column, value, anonymous, nickname)
+    actions.createItem(column, value, anonymous ? null : nickname)
     setText('')
     ref.current?.focus()
   }

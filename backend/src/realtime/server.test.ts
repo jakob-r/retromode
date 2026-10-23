@@ -88,7 +88,7 @@ describe('realtime', () => {
       id: itemId,
       column: 'well',
       text: 'Great teamwork',
-      anonymous: true,
+      nickname: null,
     })
     expect(created.ok).toBe(true)
     const [forBob, forAlice] = await Promise.all([bobSees, aliceSees])

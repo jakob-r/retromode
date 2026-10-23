@@ -103,7 +103,7 @@ describe('board model', () => {
     expect(model.linkBetween(data, ref(x.id), ref(y.id))).toBeNull()
 
     data = model.merge(data, { source: ref(x.id), target: ref(y.id), newGroupId: 'g1' })
-    data = model.link(data, action.id, { type: 'group', id: 'g1' })
+    data = model.linkItem(data, action.id, { type: 'group', id: 'g1' })
     expect(model.links(data).map((l) => l.key)).toEqual([`${action.id}>group:g1`])
 
     data = model.moveItem(data, { itemId: x.id, column: 'improve', groupId: null, afterId: null })

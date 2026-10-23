@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { ColumnKey } from '@retromode/shared'
 import { loadConfig } from '../config'
-import * as boards from '../domain/boards'
+import * as domain from '../domain'
 import { createDb } from './client'
 
 /** Creates a demo board with items, a group and some votes, and prints its URLs. */
@@ -9,8 +9,8 @@ const config = loadConfig()
 const { db, pool } = createDb(config.DATABASE_URL)
 
 const owner = randomUUID()
-const { slug, ownerKey } = await boards.createBoard(db, { title: 'Demo Retro ✨', clientId: owner })
-const board = (await boards.findBoardBySlug(db, slug))!
+const { slug, ownerKey } = await domain.createBoard(db, { title: 'Demo Retro ✨', clientId: owner })
+const board = (await domain.findBoardBySlug(db, slug))!
 const people = ['Kim', 'Alex', 'Sam', 'Robin'].map((nickname) => ({
   nickname,
   actor: { boardId: board.id, clientId: randomUUID(), isOwner: false },
@@ -32,17 +32,16 @@ const ids: string[] = []
 for (const [column, text, who, anonymous] of entries) {
   const id = randomUUID()
   const person = people[who]!
-  await boards.createItem(db, person.actor, {
+  await domain.createItem(db, person.actor, {
     id,
     column,
     text,
-    anonymous,
-    nickname: person.nickname,
+    nickname: anonymous ? null : person.nickname,
   })
   ids.push(id)
 }
 
-await boards.mergeEntries(db, people[0]!.actor, {
+await domain.merge(db, people[0]!.actor, {
   source: { type: 'item', id: ids[2]! },
   target: { type: 'item', id: ids[1]! },
   newGroupId: randomUUID(),
@@ -56,7 +55,7 @@ const votesFor: [number, number[]][] = [
   [8, [0, 1]],
 ]
 for (const [item, voters] of votesFor) {
-  for (const v of voters) await boards.addVote(db, people[v]!.actor, { itemId: ids[item]! })
+  for (const v of voters) await domain.addVote(db, people[v]!.actor, { itemId: ids[item]! })
 }
 
 const base = `http://localhost:${process.env.FRONTEND_PORT ?? 5173}`

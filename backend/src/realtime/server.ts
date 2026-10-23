@@ -10,8 +10,8 @@ import {
   boardTimerSchema,
   groupMergeSchema,
   groupMoveSchema,
+  groupRenameSchema,
   groupUngroupSchema,
-  groupUpdateSchema,
   idSchema,
   itemCreateSchema,
   itemDeleteSchema,
@@ -26,9 +26,9 @@ import {
   type ServerToClientEvents,
 } from '@retromode/shared'
 import type { Db } from '../db/client'
-import * as boards from '../domain/boards'
+import * as domain from '../domain'
 import type { Changes } from '../domain/changes'
-import { DomainError } from '../domain/errors'
+import { DomainError, invalid, notFound, notJoined, rateLimited } from '../domain/errors'
 import { patchFor, snapshotFor } from '../domain/public'
 import { TokenBucket } from './rate-limit'
 
@@ -44,27 +44,38 @@ type RetroSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, So
 
 const room = (boardId: string) => `board:${boardId}`
 
-type Mutation<S extends z.ZodType> = (
-  db: Db,
-  actor: boards.Actor,
-  input: z.infer<S>,
-) => Promise<Changes>
+function parse<S extends z.ZodType>(schema: S, raw: unknown): z.infer<S> {
+  const parsed = schema.safeParse(raw)
+  if (!parsed.success) throw invalid('Invalid input')
+  return parsed.data
+}
 
-const mutations: { [E in MutationEvent]: [z.ZodType, Mutation<z.ZodType>] } = {
-  'board:settings': [boardSettingsSchema, boards.updateSettings as Mutation<z.ZodType>],
-  'board:timer': [boardTimerSchema, boards.setTimer as Mutation<z.ZodType>],
-  'board:ready': [boardReadySchema, boards.setReady as Mutation<z.ZodType>],
-  'item:create': [itemCreateSchema, boards.createItem as Mutation<z.ZodType>],
-  'item:update': [itemUpdateSchema, boards.updateItem as Mutation<z.ZodType>],
-  'item:delete': [itemDeleteSchema, boards.deleteItem as Mutation<z.ZodType>],
-  'item:move': [itemMoveSchema, boards.moveItem as Mutation<z.ZodType>],
-  'item:link': [itemLinkSchema, boards.linkItem as Mutation<z.ZodType>],
-  'group:merge': [groupMergeSchema, boards.mergeEntries as Mutation<z.ZodType>],
-  'group:ungroup': [groupUngroupSchema, boards.ungroup as Mutation<z.ZodType>],
-  'group:update': [groupUpdateSchema, boards.updateGroup as Mutation<z.ZodType>],
-  'group:move': [groupMoveSchema, boards.moveGroup as Mutation<z.ZodType>],
-  'vote:add': [voteSchema, boards.addVote as Mutation<z.ZodType>],
-  'vote:remove': [voteSchema, boards.removeVote as Mutation<z.ZodType>],
+type Mutation = (db: Db, actor: domain.Actor, raw: unknown) => Promise<Changes>
+
+/** Validates the input with `schema` before running the mutation. */
+const mutation =
+  <S extends z.ZodType>(
+    schema: S,
+    run: (db: Db, actor: domain.Actor, input: z.infer<S>) => Promise<Changes>,
+  ): Mutation =>
+  (db, actor, raw) =>
+    run(db, actor, parse(schema, raw))
+
+const mutations: Record<MutationEvent, Mutation> = {
+  'board:settings': mutation(boardSettingsSchema, domain.updateSettings),
+  'board:timer': mutation(boardTimerSchema, domain.setTimer),
+  'board:ready': mutation(boardReadySchema, domain.setReady),
+  'item:create': mutation(itemCreateSchema, domain.createItem),
+  'item:update': mutation(itemUpdateSchema, domain.updateItem),
+  'item:delete': mutation(itemDeleteSchema, domain.deleteItem),
+  'item:move': mutation(itemMoveSchema, domain.moveItem),
+  'item:link': mutation(itemLinkSchema, domain.linkItem),
+  'group:merge': mutation(groupMergeSchema, domain.merge),
+  'group:ungroup': mutation(groupUngroupSchema, domain.ungroup),
+  'group:rename': mutation(groupRenameSchema, domain.renameGroup),
+  'group:move': mutation(groupMoveSchema, domain.moveGroup),
+  'vote:add': mutation(voteSchema, domain.addVote),
+  'vote:remove': mutation(voteSchema, domain.removeVote),
 }
 
 function fail(error: unknown, log: FastifyBaseLogger): Ack<never> {
@@ -89,9 +100,8 @@ export function createRealtimeServer(
   const queues = new Map<string, Promise<void>>()
   function broadcast(boardId: string, changes: Changes): Promise<void> {
     const run = async () => {
-      const state = await boards.loadChangedState(db, boardId, changes)
-      const sockets = await io.in(room(boardId)).fetchSockets()
-      for (const s of sockets) s.emit('board:patch', patchFor(state, changes, s.data))
+      const state = await domain.loadChangedState(db, boardId, changes)
+      for (const s of socketsOn(boardId)) s.emit('board:patch', patchFor(state, changes, s.data))
     }
     const next = (queues.get(boardId) ?? Promise.resolve())
       .then(run)
@@ -103,9 +113,20 @@ export function createRealtimeServer(
     return next
   }
 
-  async function onlineClients(boardId: string): Promise<Set<string>> {
-    const sockets = await io.in(room(boardId)).fetchSockets()
-    return new Set(sockets.map((s) => s.data.clientId))
+  /** One process serves everything, so the in-memory adapter knows every socket. */
+  function socketsOn(boardId: string): RetroSocket[] {
+    const ids = io.sockets.adapter.rooms.get(room(boardId)) ?? []
+    return [...ids].flatMap((id) => io.sockets.sockets.get(id) ?? [])
+  }
+
+  const onlineClients = (boardId: string) => new Set(socketsOn(boardId).map((s) => s.data.clientId))
+
+  /** The joined, not rate-limited actor behind a socket's next change. */
+  function actorOf(socket: RetroSocket): domain.Actor {
+    const { boardId, clientId, isOwner, bucket } = socket.data
+    if (!boardId) throw notJoined()
+    if (!bucket.take()) throw rateLimited()
+    return { boardId, clientId, isOwner }
   }
 
   /**
@@ -114,8 +135,8 @@ export function createRealtimeServer(
    */
   async function announcePresence(boardId: string) {
     try {
-      const online = await onlineClients(boardId)
-      const { ready, finished } = await boards.settleReady(db, boardId, online)
+      const online = onlineClients(boardId)
+      const { ready, finished } = await domain.settleReady(db, boardId, online)
       if (finished) {
         await broadcast(boardId, finished)
         io.to(room(boardId)).emit('board:timeup')
@@ -128,10 +149,10 @@ export function createRealtimeServer(
 
   async function snapshot(socket: RetroSocket): Promise<BoardSnapshot> {
     const boardId = socket.data.boardId
-    if (!boardId) throw new DomainError('NOT_JOINED', 'Join a board first')
-    const state = await boards.loadBoardState(db, boardId)
-    const online = await onlineClients(boardId)
-    return snapshotFor(state, socket.data, online.size, boards.readyAmong(state.board, online))
+    if (!boardId) throw notJoined()
+    const state = await domain.loadBoardState(db, boardId)
+    const online = onlineClients(boardId)
+    return snapshotFor(state, socket.data, online.size, domain.readyAmong(state.board, online))
   }
 
   io.use((socket, next) => {
@@ -144,18 +165,16 @@ export function createRealtimeServer(
   io.on('connection', (socket: RetroSocket) => {
     socket.on('board:join', async (raw, ack) => {
       try {
-        const parsed = boardJoinSchema.safeParse(raw)
-        if (!parsed.success) throw invalidInput()
-        const input = parsed.data
-        const board = await boards.findBoardBySlug(db, input.slug)
-        if (!board) throw new DomainError('NOT_FOUND', 'Board not found')
+        const input = parse(boardJoinSchema, raw)
+        const board = await domain.findBoardBySlug(db, input.slug)
+        if (!board) throw notFound('Board')
         const previous = socket.data.boardId
         if (previous && previous !== board.id) {
           await socket.leave(room(previous))
           void announcePresence(previous)
         }
         socket.data.boardId = board.id
-        socket.data.isOwner = boards.isBoardOwner(board, socket.data.clientId, input.ownerKey)
+        socket.data.isOwner = domain.isBoardOwner(board, socket.data.clientId, input.ownerKey)
         await socket.join(room(board.id))
         ack({ ok: true, data: await snapshot(socket) })
         void announcePresence(board.id)
@@ -175,17 +194,14 @@ export function createRealtimeServer(
     socket.on('board:nuke', async (raw, ack) => {
       if (typeof ack !== 'function') return
       try {
-        const boardId = socket.data.boardId
-        if (!boardId) throw new DomainError('NOT_JOINED', 'Join a board first')
-        if (!socket.data.bucket.take()) throw new DomainError('RATE_LIMITED', 'Slow down a little')
-        if (!boardNukeSchema.safeParse(raw).success) throw invalidInput()
-        await boards.nukeBoard(db, { boardId, ...socket.data })
+        const actor = actorOf(socket)
+        parse(boardNukeSchema, raw)
+        await domain.nukeBoard(db, actor)
+        const { boardId } = actor
         ack({ ok: true, data: null })
         // Tell everyone else, then forget who was here
         socket.to(room(boardId)).emit('board:nuked')
-        for (const id of [...(io.sockets.adapter.rooms.get(room(boardId)) ?? [])]) {
-          const s = io.sockets.sockets.get(id)
-          if (!s) continue
+        for (const s of socketsOn(boardId)) {
           s.data.boardId = undefined
           s.data.isOwner = false
           void s.leave(room(boardId))
@@ -195,18 +211,13 @@ export function createRealtimeServer(
       }
     })
 
-    for (const [event, [schema, run]] of Object.entries(mutations)) {
+    for (const [event, run] of Object.entries(mutations)) {
       socket.on(event as MutationEvent, async (raw: unknown, ack: (res: Ack) => void) => {
         if (typeof ack !== 'function') return
         try {
-          const boardId = socket.data.boardId
-          if (!boardId) throw new DomainError('NOT_JOINED', 'Join a board first')
-          if (!socket.data.bucket.take()) {
-            throw new DomainError('RATE_LIMITED', 'Slow down a little')
-          }
-          const parsed = schema.safeParse(raw)
-          if (!parsed.success) throw invalidInput()
-          const changes = await run(db, { boardId, ...socket.data }, parsed.data)
+          const actor = actorOf(socket)
+          const { boardId } = actor
+          const changes = await run(db, actor, raw)
           ack({ ok: true, data: null })
           if (!changes.isEmpty) await broadcast(boardId, changes)
           if (event === 'board:ready' || event === 'board:timer') await announcePresence(boardId)
@@ -223,5 +234,3 @@ export function createRealtimeServer(
 
   return io
 }
-
-const invalidInput = () => new DomainError('INVALID', 'Invalid input')

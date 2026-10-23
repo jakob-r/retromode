@@ -48,6 +48,12 @@ export function toPublicGroup(group: GroupRow): PublicGroup {
   return { id: group.id, column: group.column, position: group.position, title: group.title }
 }
 
+/**
+ * Always includes the text, also while the timer hides other people's items:
+ * clients only obscure it on screen. That's on purpose – hiding is a nudge
+ * against groupthink, not a secret, and redacting it would need a server-side
+ * timer just to reveal the texts again.
+ */
 export function toPublicItem(
   item: ItemRow,
   voters: ReadonlyMap<string, number> | undefined,

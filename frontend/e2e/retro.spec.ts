@@ -61,8 +61,8 @@ test('two people collaborate on a board in real time', async ({ browser }) => {
   // Bob votes; Alice sees the count, Bob's column budget goes down
   await bobWell.getByRole('button', { name: 'Vote (0 votes)', exact: true }).click()
   await expect(aliceWell.getByRole('button', { name: 'Vote (1 vote)', exact: true })).toBeVisible()
-  await expect(bobWell.getByText('2 votes left')).toBeVisible()
-  await expect(column(bob, 'To improve').getByText('3 votes left')).toBeVisible()
+  await expect(bobWell.getByText('4 votes left')).toBeVisible()
+  await expect(column(bob, 'To improve').getByText('5 votes left')).toBeVisible()
 
   // Only the owner sees settings; locking makes the board read-only for everyone
   await expect(bob.getByRole('button', { name: 'Board settings' })).toHaveCount(0)

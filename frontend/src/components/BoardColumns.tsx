@@ -16,7 +16,7 @@ import { useMemo, useState } from 'react'
 import { COLUMNS, type ColumnKey, type EntryRef, type PublicBoard } from '@retromode/shared'
 import { accentVars, COLUMN_META } from '../lib/columns'
 import * as model from '../lib/model'
-import { actions, useBoard } from '../store/board'
+import { actions, boardData, useBoard, useBoardData } from '../store/board'
 import { useDrag, type DropHint } from '../store/drag'
 import { Column } from './Column'
 import { GroupCard } from './GroupCard'
@@ -53,9 +53,8 @@ function computeHint(active: EntryRef, event: DragMoveEvent): DropHint | null {
   if (data.kind === 'column') return { key: `column:${data.column}`, mode: 'end' }
 
   const rect = over.rect
-  const { items, groups } = useBoard.getState()
   // An action item and something to improve get tied together instead of merged
-  const merge = model.linkBetween({ items, groups }, active, { type: data.kind, id: data.id })
+  const merge = model.linkBetween(useBoard.getState(), active, { type: data.kind, id: data.id })
     ? 'link'
     : 'merge'
   if (data.kind === 'item') {
@@ -77,15 +76,14 @@ function parseKey(key: string): { type: 'item' | 'group' | 'column'; id: string 
 }
 
 function executeDrop(active: EntryRef, hint: DropHint) {
-  const { items, groups } = useBoard.getState()
-  const data: model.BoardData = { items, groups }
+  const data = boardData(useBoard.getState())
   const target = parseKey(hint.key)
 
   if (hint.mode === 'link' && target.type !== 'column') {
     const link = model.linkBetween(data, active, { type: target.type, id: target.id })
     const current = link && data.items[link.itemId]?.link
     if (link && (current?.type !== link.target.type || current.id !== link.target.id)) {
-      actions.link(link.itemId, link.target)
+      actions.linkItem(link.itemId, link.target)
     }
     return
   }
@@ -133,13 +131,11 @@ function executeDrop(active: EntryRef, hint: DropHint) {
 }
 
 export function BoardColumns({ board }: { board: PublicBoard }) {
-  const items = useBoard((s) => s.items)
-  const groups = useBoard((s) => s.groups)
+  const data = useBoardData()
   const sortVotes = useBoard((s) => s.sortVotes)
   const active = useDrag((s) => s.active)
   const [mobileColumn, setMobileColumn] = useState<ColumnKey>('well')
 
-  const data = useMemo(() => ({ items, groups }), [items, groups])
   const columns = useMemo(
     () =>
       COLUMNS.map((column) => ({
@@ -178,7 +174,7 @@ export function BoardColumns({ board }: { board: PublicBoard }) {
   const overlay = (() => {
     if (!active) return null
     if (active.type === 'item') {
-      const item = items[active.id]
+      const item = data.items[active.id]
       if (!item) return null
       return (
         <div style={accentVars(item.column)} className="w-full">

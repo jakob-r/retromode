@@ -26,8 +26,8 @@ export function ActionItemDialog() {
             🧶 {label}
           </p>
           <ActionItemForm
-            onSubmit={(text, anonymous, nickname) => {
-              actions.createItem(model.LINK_SOURCE, text, anonymous, nickname, target)
+            onSubmit={(text, nickname) => {
+              actions.createItem(model.LINK_SOURCE, text, nickname, target)
               close()
             }}
           />
@@ -40,7 +40,8 @@ export function ActionItemDialog() {
 function ActionItemForm({
   onSubmit,
 }: {
-  onSubmit: (text: string, anonymous: boolean, nickname: string | null) => void
+  /** nickname null posts anonymously */
+  onSubmit: (text: string, nickname: string | null) => void
 }) {
   const [text, setText] = useState('')
   const nickname = useMe((s) => s.nickname)
@@ -50,7 +51,7 @@ function ActionItemForm({
   const submit = (e?: FormEvent) => {
     e?.preventDefault()
     const value = text.trim()
-    if (value) onSubmit(value, anonymous, nickname)
+    if (value) onSubmit(value, anonymous ? null : nickname)
   }
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {

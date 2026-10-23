@@ -1,9 +1,8 @@
 import { useMemo, type ReactNode } from 'react'
-import { useBoard } from '../store/board'
+import { itemsHidden, useBoard } from '../store/board'
 
 /** Whether the timer currently hides other people's items. */
-export const useItemsHidden = () =>
-  useBoard((s) => s.timerEndsAt !== null && !!s.board?.timer?.hideItems)
+export const useItemsHidden = () => useBoard(itemsHidden)
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => String.fromCodePoint(from + i))
@@ -31,7 +30,8 @@ function hash(s: string): number {
 /**
  * Renders text with every character swapped for a hieroglyph, a dingbat, a rune,
  * braille or a blacked-out bar. Spaces and line breaks stay, so word shapes remain.
- * The real text never ends up in the DOM.
+ * The real text never ends up in the DOM, but it is in the store and on the wire:
+ * hiding keeps people from being swayed by others' items, it is not access control.
  */
 export function Obscured({ text, seed }: { text: string; seed: string }) {
   const parts = useMemo(() => {

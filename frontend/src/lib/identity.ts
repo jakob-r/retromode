@@ -23,6 +23,14 @@ function write(key: string, value: string | null): void {
   }
 }
 
+const readFlag = (key: string) => read(key) === '1'
+const writeFlag = (key: string, on: boolean) => write(key, on ? '1' : '0')
+
+function readPositiveInt(key: string): number | undefined {
+  const n = Number(read(key))
+  return Number.isInteger(n) && n > 0 ? n : undefined
+}
+
 /** RFC 4122 v4; works outside secure contexts too (e.g. http://<lan-ip>). */
 export function uuid(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
@@ -45,27 +53,21 @@ export function getClientId(): string {
 export const getNickname = () => read('nickname')
 export const setNickname = (name: string | null) => write('nickname', name?.trim() || null)
 
-export const hasAnsweredNickname = () => read('nicknameAsked') === '1'
-export const markNicknameAnswered = () => write('nicknameAsked', '1')
+export const hasAnsweredNickname = () => readFlag('nicknameAsked')
+export const markNicknameAnswered = () => writeFlag('nicknameAsked', true)
 
-export const getAnonymousPref = () => read('anonymous') === '1'
-export const setAnonymousPref = (anonymous: boolean) => write('anonymous', anonymous ? '1' : '0')
+export const getAnonymousPref = () => readFlag('anonymous')
+export const setAnonymousPref = (anonymous: boolean) => writeFlag('anonymous', anonymous)
 
 /** Board-creator defaults, remembered for the next board */
-export function getVoteLimitPref(): number | undefined {
-  const n = Number(read('voteLimit'))
-  return Number.isInteger(n) && n > 0 ? n : undefined
-}
+export const getVoteLimitPref = () => readPositiveInt('voteLimit')
 export const setVoteLimitPref = (limit: number) => write('voteLimit', String(limit))
 
-export function getTimerSecondsPref(): number | undefined {
-  const n = Number(read('timerSeconds'))
-  return Number.isInteger(n) && n > 0 ? n : undefined
-}
+export const getTimerSecondsPref = () => readPositiveInt('timerSeconds')
 export const setTimerSecondsPref = (seconds: number) => write('timerSeconds', String(seconds))
 
-export const getTimerHideItemsPref = () => read('timerHideItems') === '1'
-export const setTimerHideItemsPref = (hide: boolean) => write('timerHideItems', hide ? '1' : '0')
+export const getTimerHideItemsPref = () => readFlag('timerHideItems')
+export const setTimerHideItemsPref = (hide: boolean) => writeFlag('timerHideItems', hide)
 
 export const getOwnerKey = (slug: string) => read(`ownerKey:${slug}`) ?? undefined
 export const setOwnerKey = (slug: string, key: string) => write(`ownerKey:${slug}`, key)

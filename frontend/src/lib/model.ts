@@ -5,6 +5,8 @@
  */
 import {
   COLUMNS,
+  LINK_SOURCE,
+  LINK_TARGET,
   positionAfter,
   positionAtEnd,
   positionsBetween,
@@ -50,10 +52,23 @@ export function groupMembers(data: BoardData, groupId: string): PublicItem[] {
 
 /** Top-level entries of a column (groups and ungrouped items), in position order. */
 export function columnEntries(data: BoardData, column: ColumnKey): Entry[] {
+  // One pass over the items: ungrouped ones in this column, and every group's members
   const entries: Entry[] = []
+  const members = new Map<string, PublicItem[]>()
+  for (const item of Object.values(data.items)) {
+    if (item.groupId === null) {
+      if (item.column === column) {
+        entries.push({ type: 'item', id: item.id, position: item.position, item })
+      }
+    } else {
+      const list = members.get(item.groupId)
+      if (list) list.push(item)
+      else members.set(item.groupId, [item])
+    }
+  }
   for (const group of Object.values(data.groups)) {
     if (group.column !== column) continue
-    const items = groupMembers(data, group.id)
+    const items = sortPositioned(members.get(group.id) ?? [])
     entries.push({
       type: 'group',
       id: group.id,
@@ -62,11 +77,6 @@ export function columnEntries(data: BoardData, column: ColumnKey): Entry[] {
       items,
       votes: items.reduce((sum, i) => sum + i.votes, 0),
     })
-  }
-  for (const item of Object.values(data.items)) {
-    if (item.column === column && item.groupId === null) {
-      entries.push({ type: 'item', id: item.id, position: item.position, item })
-    }
   }
   return sortPositioned(entries)
 }
@@ -282,15 +292,14 @@ export function moveGroup(
   return next
 }
 
-export function link(data: BoardData, itemId: string, target: EntryRef | null): BoardData {
+export function linkItem(data: BoardData, itemId: string, target: EntryRef | null): BoardData {
   return patchItem(data, itemId, { link: target })
 }
 
 // ---------------------------------------------------------------------------
 // Links: action items hang on a string from the "To improve" entry they address
 
-export const LINK_SOURCE: ColumnKey = 'actions'
-export const LINK_TARGET: ColumnKey = 'improve'
+export { LINK_SOURCE, LINK_TARGET }
 
 export interface Link {
   key: string

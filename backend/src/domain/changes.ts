@@ -6,6 +6,11 @@ export class Changes {
   readonly deletedItemIds = new Set<string>()
   readonly deletedGroupIds = new Set<string>()
 
+  boardChanged(): this {
+    this.board = true
+    return this
+  }
+
   item(id: string): this {
     this.itemIds.add(id)
     return this

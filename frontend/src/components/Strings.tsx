@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { EntryRef } from '@retromode/shared'
 import * as model from '../lib/model'
 import { prefersReducedMotion } from '../lib/motion'
-import { useBoard } from '../store/board'
+import { useBoardData } from '../store/board'
 import { useDrag } from '../store/drag'
 
 /**
@@ -58,8 +58,7 @@ const WOBBLE_MS = 1600
  * animations and dragged cards, and sway a little.
  */
 export function Strings() {
-  const items = useBoard((s) => s.items)
-  const groups = useBoard((s) => s.groups)
+  const data = useBoardData()
   const active = useDrag((s) => s.active)
   const hint = useDrag((s) => s.hint)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -67,14 +66,14 @@ export function Strings() {
   const born = useRef(new Map<string, number>())
   const mounted = useRef(false)
 
-  const strings = useMemo(() => model.links({ items, groups }), [items, groups])
+  const strings = useMemo(() => model.links(data), [data])
 
   // While dragging onto a tie target, preview the string that dropping would make
   const preview = useMemo(() => {
     if (!active || hint?.mode !== 'link') return null
     const [type, id] = hint.key.split(':') as [EntryRef['type'], string]
-    return model.linkBetween({ items, groups }, active, { type, id })
-  }, [active, hint, items, groups])
+    return model.linkBetween(data, active, { type, id })
+  }, [active, hint, data])
 
   useLayoutEffect(() => {
     const now = performance.now()

@@ -28,8 +28,8 @@ export const itemCreateSchema = z.object({
   id: idSchema,
   column: columnSchema,
   text: itemText,
-  anonymous: z.boolean(),
-  nickname: nickname.optional(),
+  /** null = posted anonymously */
+  nickname: nickname.nullable(),
   /** Only for action items: the "To improve" entry this one addresses. */
   link: entryRefSchema.optional(),
 })
@@ -37,8 +37,8 @@ export const itemCreateSchema = z.object({
 export const itemUpdateSchema = z.object({
   itemId: idSchema,
   text: itemText.optional(),
-  anonymous: z.boolean().optional(),
-  nickname: nickname.optional(),
+  /** null = anonymous from now on; left out = unchanged */
+  nickname: nickname.nullable().optional(),
 })
 
 export const itemDeleteSchema = z.object({ itemId: idSchema })
@@ -60,7 +60,7 @@ export const groupMergeSchema = z.object({
 
 export const groupUngroupSchema = z.object({ groupId: idSchema })
 
-export const groupUpdateSchema = z.object({
+export const groupRenameSchema = z.object({
   groupId: idSchema,
   title: z.string().trim().max(LIMITS.groupTitle).nullable(),
 })
@@ -108,7 +108,7 @@ export type ItemLinkInput = z.infer<typeof itemLinkSchema>
 export type EntryRef = z.infer<typeof entryRefSchema>
 export type GroupMergeInput = z.infer<typeof groupMergeSchema>
 export type GroupUngroupInput = z.infer<typeof groupUngroupSchema>
-export type GroupUpdateInput = z.infer<typeof groupUpdateSchema>
+export type GroupRenameInput = z.infer<typeof groupRenameSchema>
 export type GroupMoveInput = z.infer<typeof groupMoveSchema>
 export type VoteInput = z.infer<typeof voteSchema>
 export type BoardSettingsInput = z.infer<typeof boardSettingsSchema>

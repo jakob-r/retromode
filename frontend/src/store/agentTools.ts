@@ -7,11 +7,11 @@
 import { COLUMNS, LIMITS, type Ack, type ColumnKey, type EntryRef } from '@retromode/shared'
 import * as model from '../lib/model'
 import { registerTools, type WebMcpTool } from '../lib/webmcp'
-import { actions, nextPatch, useBoard } from './board'
+import { actions, boardData, itemsHidden, nextPatch, useBoard } from './board'
 import { useMe } from './me'
 
 const get = useBoard.getState
-const data = (): model.BoardData => ({ items: get().items, groups: get().groups })
+const data = () => boardData(get())
 
 function readyBoard() {
   const { board, status } = get()
@@ -26,11 +26,12 @@ function writableBoard() {
   return board
 }
 
-/** Waits for the server to accept a change and for its result to arrive. */
-async function sent(ack: Promise<Ack>): Promise<void> {
+/** Waits for the server to accept a change to `id` and for its result to arrive. */
+async function sent(ack: Promise<Ack>, id: string): Promise<void> {
+  const patched = nextPatch(id)
   const res = await ack
   if (!res.ok) throw new Error(res.message)
-  await nextPatch()
+  await patched
 }
 
 /** Looks up whether an id is an item or a group. */
@@ -79,13 +80,10 @@ function linkTarget(id: unknown): EntryRef {
   return ref
 }
 
-/** Posts like the person would: with their nickname unless they post anonymously. */
-function identity(anonymous: unknown) {
+/** Posts like the person would: with their nickname unless they post anonymously (null). */
+function postAs(anonymous: unknown): string | null {
   const me = useMe.getState()
-  return {
-    anonymous: typeof anonymous === 'boolean' ? anonymous : me.anonymous,
-    nickname: me.nickname,
-  }
+  return (typeof anonymous === 'boolean' ? anonymous : me.anonymous) ? null : me.nickname
 }
 
 const anonymousProp = {
@@ -105,10 +103,7 @@ const tools: WebMcpTool[] = [
     inputSchema: { type: 'object', properties: {} },
     annotations: { readOnlyHint: true },
     async execute() {
-      const board = readyBoard()
-      const { timerEndsAt } = get()
-      const hidden = timerEndsAt !== null && !!board.timer?.hideItems
-      return model.boardAsJson(data(), board, hidden)
+      return model.boardAsJson(data(), readyBoard(), itemsHidden(get()))
     },
   },
   {
@@ -126,14 +121,12 @@ const tools: WebMcpTool[] = [
     },
     async execute(input) {
       writableBoard()
-      const who = identity(input.anonymous)
       const { id, sent: ack } = actions.createItem(
         column(input.column),
         text(input.text),
-        who.anonymous,
-        who.nickname,
+        postAs(input.anonymous),
       )
-      await sent(ack)
+      await sent(ack, id)
       return { id }
     },
   },
@@ -157,15 +150,13 @@ const tools: WebMcpTool[] = [
     async execute(input) {
       writableBoard()
       const target = input.addresses === undefined ? null : linkTarget(input.addresses)
-      const who = identity(input.anonymous)
       const { id, sent: ack } = actions.createItem(
         model.LINK_SOURCE,
         text(input.text),
-        who.anonymous,
-        who.nickname,
+        postAs(input.anonymous),
         target,
       )
-      await sent(ack)
+      await sent(ack, id)
       return { id }
     },
   },
@@ -188,7 +179,8 @@ const tools: WebMcpTool[] = [
       if (get().items[id]?.column !== model.LINK_SOURCE) {
         throw new Error('Only items in the "actions" column can be tied')
       }
-      await sent(actions.link(id, input.addresses === null ? null : linkTarget(input.addresses)))
+      const target = input.addresses === null ? null : linkTarget(input.addresses)
+      await sent(actions.linkItem(id, target), id)
       return { ok: true }
     },
   },
@@ -208,8 +200,7 @@ const tools: WebMcpTool[] = [
       writableBoard()
       const item = get().items[itemId(input.itemId)]!
       if (!item.mine) throw new Error('Only your own items (mine: true) can be edited')
-      const nickname = item.nickname ?? useMe.getState().nickname
-      await sent(actions.updateItem(item.id, text(input.text), item.nickname === null, nickname))
+      await sent(actions.updateItem(item.id, text(input.text)), item.id)
       return { ok: true }
     },
   },
@@ -226,7 +217,8 @@ const tools: WebMcpTool[] = [
     annotations: { consequentialHint: true },
     async execute(input) {
       writableBoard()
-      await sent(actions.deleteItem(itemId(input.itemId)))
+      const id = itemId(input.itemId)
+      await sent(actions.deleteItem(id), id)
       return { ok: true }
     },
   },
@@ -252,7 +244,7 @@ const tools: WebMcpTool[] = [
         source.type === 'item'
           ? [source.id]
           : model.groupMembers(data(), source.id).map((i) => i.id)
-      await sent(actions.merge(source, target))
+      await sent(actions.merge(source, target), source.id)
       return { groupId: get().items[moving[0] ?? '']?.groupId ?? null }
     },
   },
@@ -273,7 +265,7 @@ const tools: WebMcpTool[] = [
       const id = groupId(input.groupId)
       const title =
         typeof input.title === 'string' ? input.title.trim().slice(0, LIMITS.groupTitle) : ''
-      await sent(actions.renameGroup(id, title || null))
+      await sent(actions.renameGroup(id, title || null), id)
       return { ok: true }
     },
   },
@@ -288,7 +280,8 @@ const tools: WebMcpTool[] = [
     },
     async execute(input) {
       writableBoard()
-      await sent(actions.ungroup(groupId(input.groupId)))
+      const id = groupId(input.groupId)
+      await sent(actions.ungroup(id), id)
       return { ok: true }
     },
   },
@@ -313,10 +306,10 @@ const tools: WebMcpTool[] = [
       const afterId = input.afterId ? refOf(input.afterId).id : null
       if (ref.type === 'group') {
         if (input.groupId) throw new Error('Groups cannot be put into other groups; use merge')
-        await sent(actions.moveGroup(ref.id, to, afterId))
+        await sent(actions.moveGroup(ref.id, to, afterId), ref.id)
       } else {
         const into = input.groupId ? groupId(input.groupId) : null
-        await sent(actions.moveItem(ref.id, to, into, afterId))
+        await sent(actions.moveItem(ref.id, to, into, afterId), ref.id)
       }
       return { ok: true }
     },

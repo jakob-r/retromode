@@ -6,8 +6,8 @@ import type {
   BoardTimerInput,
   GroupMergeInput,
   GroupMoveInput,
+  GroupRenameInput,
   GroupUngroupInput,
-  GroupUpdateInput,
   ItemCreateInput,
   ItemDeleteInput,
   ItemLinkInput,
@@ -33,7 +33,7 @@ export interface ClientToServerEvents {
   'item:link': Handler<ItemLinkInput>
   'group:merge': Handler<GroupMergeInput>
   'group:ungroup': Handler<GroupUngroupInput>
-  'group:update': Handler<GroupUpdateInput>
+  'group:rename': Handler<GroupRenameInput>
   'group:move': Handler<GroupMoveInput>
   'vote:add': Handler<VoteInput>
   'vote:remove': Handler<VoteInput>

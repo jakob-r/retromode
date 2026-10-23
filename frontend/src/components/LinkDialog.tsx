@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { EntryRef } from '@retromode/shared'
 import { accentVars } from '../lib/columns'
 import * as model from '../lib/model'
-import { actions, useBoard } from '../store/board'
+import { actions, useBoardData } from '../store/board'
 import { useUi } from '../store/ui'
 import { Dialog } from './Dialog'
 import { EntryPicker } from './EntryPicker'
@@ -11,15 +11,11 @@ import { EntryPicker } from './EntryPicker'
 export function LinkDialog() {
   const itemId = useUi((s) => s.linkSource)
   const close = () => useUi.getState().setLinkSource(null)
-  const items = useBoard((s) => s.items)
-  const groups = useBoard((s) => s.groups)
-  const candidates = useMemo(
-    () => model.columnEntries({ items, groups }, model.LINK_TARGET),
-    [items, groups],
-  )
+  const data = useBoardData()
+  const candidates = useMemo(() => model.columnEntries(data, model.LINK_TARGET), [data])
 
   const pick = (target: EntryRef) => {
-    if (itemId) actions.link(itemId, target)
+    if (itemId) actions.linkItem(itemId, target)
     close()
   }
 
@@ -29,7 +25,7 @@ export function LinkDialog() {
         <EntryPicker
           entries={candidates}
           empty="Nothing to improve yet."
-          selected={itemId ? items[itemId]?.link : null}
+          selected={itemId ? data.items[itemId]?.link : null}
           onPick={pick}
         />
       </div>

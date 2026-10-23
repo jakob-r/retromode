@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { EntryRef } from '@retromode/shared'
 import { accentVars } from '../lib/columns'
 import * as model from '../lib/model'
-import { actions, useBoard } from '../store/board'
+import { actions, useBoardData } from '../store/board'
 import { useUi } from '../store/ui'
 import { Dialog } from './Dialog'
 import { EntryPicker } from './EntryPicker'
@@ -11,14 +11,12 @@ import { EntryPicker } from './EntryPicker'
 export function MergeDialog() {
   const source = useUi((s) => s.mergeSource)
   const close = () => useUi.getState().setMergeSource(null)
-  const items = useBoard((s) => s.items)
-  const groups = useBoard((s) => s.groups)
+  const data = useBoardData()
 
   const { column, candidates } = useMemo(() => {
     if (!source) return { column: null, candidates: [] as model.Entry[] }
-    const data = { items, groups }
-    const sourceItem = source.type === 'item' ? items[source.id] : undefined
-    const col = sourceItem?.column ?? groups[source.id]?.column ?? null
+    const sourceItem = source.type === 'item' ? data.items[source.id] : undefined
+    const col = sourceItem?.column ?? data.groups[source.id]?.column ?? null
     if (!col) return { column: null, candidates: [] }
     const ownGroup = source.type === 'group' ? source.id : sourceItem?.groupId
     return {
@@ -27,7 +25,7 @@ export function MergeDialog() {
         .columnEntries(data, col)
         .filter((e) => e.id !== source.id && e.id !== ownGroup),
     }
-  }, [source, items, groups])
+  }, [source, data])
 
   const pick = (target: EntryRef) => {
     if (source) actions.merge(source, target)

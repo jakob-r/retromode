@@ -1,6 +1,8 @@
 import { create } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
 import type {
   Ack,
+  BoardPatch,
   BoardSettingsInput,
   BoardSnapshot,
   ColumnKey,
@@ -63,26 +65,49 @@ export const useBoard = create<BoardStore>(() => initial())
 
 const set = useBoard.setState
 const get = useBoard.getState
-const data = (): model.BoardData => ({ items: get().items, groups: get().groups })
+
+/** Just the items and groups, as the pure model functions take them. */
+export const boardData = (s: model.BoardData): model.BoardData => ({
+  items: s.items,
+  groups: s.groups,
+})
+const data = () => boardData(get())
+
+/** Items and groups; re-renders only when one of them changes. */
+export const useBoardData = () => useBoard(useShallow(boardData))
+
+/** Whether the timer currently hides other people's items. */
+export const itemsHidden = (s: BoardStore) => s.timerEndsAt !== null && !!s.board?.timer?.hideItems
 
 let socket: RetroSocket | null = null
 
-const patchListeners = new Set<() => void>()
+const patchListeners = new Set<(patch: BoardPatch) => void>()
+
+const mentions = (patch: BoardPatch, id: string) =>
+  !!(
+    patch.items?.some((i) => i.id === id) ||
+    patch.groups?.some((g) => g.id === id) ||
+    patch.deletedItemIds?.includes(id) ||
+    patch.deletedGroupIds?.includes(id)
+  )
 
 /**
- * Resolves once the next server patch has been applied (or after `timeoutMs`).
- * The server acks a change before it broadcasts the patch, so this is how to
- * see a change's authoritative result.
+ * Resolves once a server patch about the item or group `id` has been applied
+ * (or after `timeoutMs`). The server acks a change before it broadcasts the
+ * patch, so this is how to see a change's authoritative result.
  */
-export function nextPatch(timeoutMs = 1000): Promise<void> {
+export function nextPatch(id: string, timeoutMs = 2000): Promise<void> {
   return new Promise((resolve) => {
     const done = () => {
       clearTimeout(timeout)
-      patchListeners.delete(done)
+      patchListeners.delete(listener)
       resolve()
     }
+    const listener = (patch: BoardPatch) => {
+      if (mentions(patch, id)) done()
+    }
     const timeout = setTimeout(done, timeoutMs)
-    patchListeners.add(done)
+    patchListeners.add(listener)
   })
 }
 
@@ -219,7 +244,7 @@ export function connectBoard(slug: string): () => void {
     markFresh(created)
     voted.forEach(sprayVote)
     if (patch.board) syncTimer(patch.board)
-    patchListeners.forEach((listener) => listener())
+    patchListeners.forEach((listener) => listener(patch))
   })
 
   return () => {
@@ -246,63 +271,59 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
 
 const OFFLINE = 'You are offline – reconnecting…'
 
-/**
- * Apply an optimistic change, send it, and roll back via resync if the server
- * says no. Resolves with the server's answer.
- */
-function mutate(
-  event: MutationEvent,
-  input: unknown,
-  optimistic?: (d: model.BoardData) => model.BoardData,
-): Promise<Ack> {
+/** Sends an event and resolves with the server's answer; offline, it says so instead. */
+function send(event: MutationEvent | 'board:nuke', input: unknown): Promise<Ack> {
   const s = socket
   if (!s?.connected) {
     toast(OFFLINE, 'error')
     return Promise.resolve({ ok: false, error: 'INTERNAL', message: OFFLINE })
   }
-  if (optimistic) set(optimistic(data()))
   const emit = s.emit as (e: string, i: unknown, ack: (res: Ack) => void) => void
-  return new Promise((resolve) => {
-    emit.call(s, event, input, (res: Ack) => {
-      resolve(res)
-      if (res.ok) return
-      toast(MESSAGES[res.error] ?? 'Something went wrong – resyncing', 'error')
-      resync()
-    })
-  })
+  return new Promise((resolve) => emit.call(s, event, input, resolve))
+}
+
+/**
+ * Apply an optimistic change (only when it can be sent), send it, and roll
+ * back via resync if the server says no. Resolves with the server's answer.
+ */
+async function mutate(
+  event: MutationEvent,
+  input: unknown,
+  optimistic?: (s: BoardStore) => Partial<BoardStore>,
+): Promise<Ack> {
+  const online = !!socket?.connected
+  if (online && optimistic) set(optimistic(get()))
+  const res = await send(event, input)
+  if (!res.ok && online) {
+    toast(MESSAGES[res.error] ?? 'Something went wrong – resyncing', 'error')
+    resync()
+  }
+  return res
 }
 
 // ---------------------------------------------------------------------------
 // Actions
 
 export const actions = {
+  /** nickname null posts anonymously. */
   createItem(
     column: ColumnKey,
     text: string,
-    anonymous: boolean,
     nickname: string | null,
     link: EntryRef | null = null,
   ) {
     const id = uuid()
     const now = new Date().toISOString()
-    const named = !anonymous && !!nickname
     const sent = mutate(
       'item:create',
-      {
-        id,
-        column,
-        text,
-        anonymous: !named,
-        nickname: nickname ?? undefined,
-        link: link ?? undefined,
-      },
+      { id, column, text, nickname, link: link ?? undefined },
       (d) =>
         model.createItem(d, {
           id,
           column,
           groupId: null,
           text,
-          nickname: named ? nickname : null,
+          nickname,
           mine: true,
           votes: 0,
           myVotes: 0,
@@ -315,12 +336,10 @@ export const actions = {
     return { id, sent }
   },
 
-  updateItem(itemId: string, text: string, anonymous: boolean, nickname: string | null) {
-    const named = !anonymous && !!nickname
-    return mutate(
-      'item:update',
-      { itemId, text, anonymous: !named, nickname: nickname ?? undefined },
-      (d) => model.patchItem(d, itemId, { text, nickname: named ? nickname : null }),
+  /** nickname null makes the item anonymous; left out, it stays as it is. */
+  updateItem(itemId: string, text: string, nickname?: string | null) {
+    return mutate('item:update', { itemId, text, nickname }, (d) =>
+      model.patchItem(d, itemId, { text, ...(nickname !== undefined && { nickname }) }),
     )
   },
 
@@ -334,8 +353,8 @@ export const actions = {
   },
 
   /** Ties an action item to something to improve (null cuts the string). */
-  link(itemId: string, target: EntryRef | null) {
-    return mutate('item:link', { itemId, target }, (d) => model.link(d, itemId, target))
+  linkItem(itemId: string, target: EntryRef | null) {
+    return mutate('item:link', { itemId, target }, (d) => model.linkItem(d, itemId, target))
   },
 
   merge(source: EntryRef, target: EntryRef) {
@@ -348,7 +367,7 @@ export const actions = {
   },
 
   renameGroup(groupId: string, title: string | null) {
-    return mutate('group:update', { groupId, title }, (d) =>
+    return mutate('group:rename', { groupId, title }, (d) =>
       model.patchGroup(d, groupId, { title }),
     )
   },
@@ -379,62 +398,52 @@ export const actions = {
   },
 
   updateSettings(input: BoardSettingsInput) {
-    const board = get().board
-    if (board) {
-      set({
-        board: {
-          ...board,
-          ...(input.title !== undefined && { title: input.title }),
-          ...(input.voteLimit !== undefined && { voteLimit: input.voteLimit }),
-          ...(input.locked !== undefined && { locked: input.locked }),
-        },
-      })
-    }
-    mutate('board:settings', input)
+    mutate('board:settings', input, ({ board }) =>
+      board
+        ? {
+            board: {
+              ...board,
+              ...(input.title !== undefined && { title: input.title }),
+              ...(input.voteLimit !== undefined && { voteLimit: input.voteLimit }),
+              ...(input.locked !== undefined && { locked: input.locked }),
+            },
+          }
+        : {},
+    )
   },
 
   /** Owner only: deletes the board and everything on it for everyone. Resolves once it's gone. */
-  nuke(): Promise<boolean> {
-    const s = socket
-    if (!s?.connected) {
-      toast(OFFLINE, 'error')
-      return Promise.resolve(false)
+  async nuke(): Promise<boolean> {
+    const res = await send('board:nuke', { confirm: 'NUKE' })
+    if (!res.ok) {
+      if (res.message !== OFFLINE) toast(MESSAGES[res.error] ?? 'Something went wrong', 'error')
+      return false
     }
-    return new Promise((resolve) => {
-      s.emit('board:nuke', { confirm: 'NUKE' }, (res) => {
-        if (!res.ok) {
-          toast(MESSAGES[res.error] ?? 'Something went wrong', 'error')
-          return resolve(false)
-        }
-        wipe()
-        s.disconnect()
-        resolve(true)
-      })
-    })
+    wipe()
+    socket?.disconnect()
+    return true
   },
 
   /** Starts the shared timer for everyone (null stops it). */
   setTimer(seconds: number | null, hideItems = false) {
-    const board = get().board
-    if (board && socket?.connected) {
+    mutate('board:timer', { seconds, hideItems }, ({ board }) => {
+      if (!board) return {}
       const timer =
         seconds === null
           ? null
           : { seconds, remainingMs: seconds * 1000, hideItems, meReady: false }
-      set({ board: { ...board, timer }, ready: 0 })
       syncTimer({ ...board, timer })
-    }
-    mutate('board:timer', { seconds, hideItems })
+      return { board: { ...board, timer }, ready: 0 }
+    })
   },
 
   /** Says I'm done with the running timer (or not anymore); once everyone is, it stops early. */
   setReady(ready: boolean) {
-    const { board, ready: count } = get()
-    if (!board?.timer || board.timer.meReady === ready || !socket?.connected) return
-    set({
-      board: { ...board, timer: { ...board.timer, meReady: ready } },
+    const { timer } = get().board ?? {}
+    if (!timer || timer.meReady === ready) return
+    mutate('board:ready', { ready }, ({ board, ready: count }) => ({
+      board: board && { ...board, timer: { ...timer, meReady: ready } },
       ready: Math.max(0, count + (ready ? 1 : -1)),
-    })
-    mutate('board:ready', { ready })
+    }))
   },
 }

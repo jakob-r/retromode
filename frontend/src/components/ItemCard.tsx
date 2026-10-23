@@ -35,9 +35,7 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
   const fresh = useBoard((s) => !!s.freshItems[item.id])
   const dropMode = useDropMode(`item:${item.id}`)
   const hidden = useItemsHidden() && !item.mine
-  const tiedTo = useBoard((s) =>
-    item.link ? model.entryLabel({ items: s.items, groups: s.groups }, item.link) : null,
-  )
+  const tiedTo = useBoard((s) => (item.link ? model.entryLabel(s, item.link) : null))
 
   const drag = useDraggable({
     id: `item:${item.id}`,
@@ -77,7 +75,7 @@ export function ItemCard({ item, canVote, locked, isOwner, overlay = false }: Pr
         menu.push({
           label: 'Cut the string',
           icon: <Scissors size={15} />,
-          onSelect: () => actions.link(item.id, null),
+          onSelect: () => actions.linkItem(item.id, null),
         })
       }
     }
@@ -173,7 +171,7 @@ function EditItem({ item, onDone }: { item: PublicItem; onDone: () => void }) {
   const save = () => {
     const value = text.trim()
     if (!value) return
-    actions.updateItem(item.id, value, anonymous, item.nickname ?? nickname)
+    actions.updateItem(item.id, value, anonymous ? null : (item.nickname ?? nickname))
     onDone()
   }
   const onKeyDown = (e: KeyboardEvent) => {
